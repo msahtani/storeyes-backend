@@ -32,6 +32,9 @@ public class SecurityConfig {
     @Value("${spring.security.oauth2.resourceserver.jwt.audience}")
     private String audience;
 
+    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
+    private String jwkSetUri;
+
     /**
      * Configure Spring Security with OAuth2 Resource Server (JWT validation)
      * The JWT decoder is automatically configured from application.yaml properties:
@@ -104,12 +107,13 @@ public class SecurityConfig {
 
     /**
      * JWT Decoder configured to validate tokens against Keycloak
+     * Uses JWKS URI directly to avoid 403 errors on OpenID configuration endpoint
      * Validates both issuer and audience claims
      */
     @Bean
     public JwtDecoder jwtDecoder() {
-        // Create decoder with issuer location (automatically fetches JWKS)
-        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withIssuerLocation(issuerUri).build();
+        // Create decoder with JWKS URI directly (bypasses OpenID config endpoint)
+        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
 
         // Create validators
         OAuth2TokenValidator<Jwt> issuerValidator = JwtValidators.createDefaultWithIssuer(issuerUri);
