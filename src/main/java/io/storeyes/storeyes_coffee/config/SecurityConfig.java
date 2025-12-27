@@ -111,13 +111,14 @@ public class SecurityConfig {
 
     /**
      * JWT Decoder configured to validate tokens against Keycloak
-     * Uses JWKS URI directly to avoid 403 errors on OpenID configuration endpoint
+     * Uses issuer URI for automatic OpenID Connect discovery and JWKS retrieval
      * Validates both issuer and audience claims
      */
     @Bean
     public JwtDecoder jwtDecoder() {
-        // Create decoder with JWKS URI directly (bypasses OpenID config endpoint)
-        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+        // Use issuer location to automatically discover JWKS endpoint
+        // This handles OpenID Connect discovery and retrieves keys from JWKS endpoint
+        NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withIssuerLocation(issuerUri).build();
 
         // Create validators
         OAuth2TokenValidator<Jwt> issuerValidator = JwtValidators.createDefaultWithIssuer(issuerUri);
@@ -134,6 +135,11 @@ public class SecurityConfig {
 
     /**
      * Custom validator to check audience claim in JWT token
+     * In Keycloak, tokens from password grant flow have "account" as audience
+     * and the client ID is in the "azp" (authorized party) claim.
+     * This validator accepts both scenarios:
+     * 1. Standard OAuth2: aud claim contains the expected audience
+     * 2. Keycloak password grant: aud is "account" and azp matches the expected client ID
      */
     private static class AudienceValidator implements OAuth2TokenValidator<Jwt> {
         private final String audience;
@@ -145,13 +151,23 @@ public class SecurityConfig {
         @Override
         public org.springframework.security.oauth2.core.OAuth2TokenValidatorResult validate(Jwt jwt) {
             List<String> audiences = jwt.getAudience();
+            String azp = jwt.getClaimAsString("azp");
+            
+            // Check if audience claim contains the expected audience (standard OAuth2)
             if (audiences != null && audiences.contains(audience)) {
                 return org.springframework.security.oauth2.core.OAuth2TokenValidatorResult.success();
             }
+            
+            // In Keycloak password grant flow, aud is "account" and client ID is in azp
+            // Validate that azp (authorized party) matches the expected client ID
+            if (audience.equals(azp)) {
+                return org.springframework.security.oauth2.core.OAuth2TokenValidatorResult.success();
+            }
+            
             return org.springframework.security.oauth2.core.OAuth2TokenValidatorResult.failure(
                 new org.springframework.security.oauth2.core.OAuth2Error(
                     org.springframework.security.oauth2.core.OAuth2ErrorCodes.INVALID_TOKEN,
-                    "The token does not contain the required audience: " + audience,
+                    "The token does not contain the required audience: " + audience + " (aud: " + audiences + ", azp: " + azp + ")",
                     null
                 )
             );
@@ -190,4 +206,5 @@ public class SecurityConfig {
         return source;
     }
 }
+
 

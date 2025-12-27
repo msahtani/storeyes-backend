@@ -40,12 +40,12 @@ curl -X POST http://15.216.37.183/realms/storeyes/protocol/openid-connect/token 
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password" \
   -d "client_id=storeyes-mobile" \
-  -d "username=your-username" \
-  -d "password=your-password"
+  -d "username=storeyesuser" \
+  -d "password=userS123"
 
 # Use the access_token from the response to call your API
 curl -X GET https://api.storeyes.io/api/alerts \
-  -H "Authorization: Bearer <access_token_from_above>"
+  -H "Authorization: Bearer eyJhbGciOiJFUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJqRWJuY3VIS3E5Y1NxNGdzVmVMQlBTV0ZCdU5DR2NTTzVfbFY0eGRXTWJnIn0.eyJleHAiOjE3NjY4NDc1MjAsImlhdCI6MTc2Njg0NzIyMCwianRpIjoib25ydHJvOjg4ZDY5ZjU3LTJjOTktN2UzYS0yMjQ1LTQ3NDY0NzQwZTgyOSIsImlzcyI6Imh0dHA6Ly8xNS4yMTYuMzcuMTgzL3JlYWxtcy9zdG9yZXllcyIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiIwNWQ5ZmRiNi02YWMwLTRlMWMtYTMwOS0wODFlNDEwMTJhMmUiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzdG9yZXllcy1tb2JpbGUiLCJzaWQiOiI3MzBkNzFhMi02OWZhLTQzNmMtZWNhZC0zMzkzNDg5YWRkNjIiLCJhY3IiOiIxIiwiYWxsb3dlZC1vcmlnaW5zIjpbIioiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iLCJkZWZhdWx0LXJvbGVzLXN0b3JleWVzIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJOZXcgU3RvcmV5ZXMiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJzdG9yZXllc3VzZXIiLCJnaXZlbl9uYW1lIjoiTmV3IiwiZmFtaWx5X25hbWUiOiJTdG9yZXllcyIsImVtYWlsIjoic3RvcmV5ZXN1MUBnYW1pbC5jb20ifQ.5DtJnt7WvTn65bhtskt82dCaNx5bO0EOKZNpotpFpglrgUzrOz1U_IhyV_ovDyHnGpf1rIhZuyzRO5IMKtQIEg"
 ```
 
 ### 3. CORS 403 Errors
