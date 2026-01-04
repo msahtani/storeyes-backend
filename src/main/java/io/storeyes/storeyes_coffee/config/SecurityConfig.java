@@ -75,6 +75,8 @@ public class SecurityConfig {
                 
                 // Public endpoints - /api/alerts/** is accessible without authentication
                 .requestMatchers("/api/alerts/**").permitAll()
+
+                .requestMatchers("/api/stream/**").permitAll()
                 
                 // All other /api/** endpoints require authentication
                 .requestMatchers("/api/**").authenticated()
