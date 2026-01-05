@@ -1,2 +1,2 @@
 #!/bin/bash
-pkill -f app.jar || true
+docker compose down || true
