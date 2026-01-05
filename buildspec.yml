@@ -13,3 +13,4 @@ artifacts:
   files:
     - backend/app.jar
     - scripts/**
+    - docker-compose.yml
