@@ -14,3 +14,4 @@ artifacts:
     - backend/app.jar
     - scripts/**
     - docker-compose.yml
+    - mediamtx.yml

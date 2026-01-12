@@ -8,5 +8,8 @@ public class UpdateSecondaryVideoRequest {
     
     @NotNull(message = "Secondary video URL is required")
     private String secondaryVideoUrl;
+    
+    @NotNull(message = "Image URL is required")
+    private String imageUrl;
 }
 

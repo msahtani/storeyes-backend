@@ -53,14 +53,14 @@ public class AlertController {
     
     
     /**
-     * Update secondary video URL and mark alert as processed
+     * Update secondary video URL, image URL and mark alert as processed
      * PUT /api/alerts/{id}/secondary-video
      */
     @PutMapping("/{id}/secondary-video")
     public ResponseEntity<Void> updateSecondaryVideoAndMarkProcessed(
             @PathVariable Long id,
             @Valid @RequestBody UpdateSecondaryVideoRequest request) {
-        boolean updated = alertService.updateSecondaryVideoAndMarkProcessed(id, request.getSecondaryVideoUrl());
+        boolean updated = alertService.updateSecondaryVideoAndMarkProcessed(id, request.getSecondaryVideoUrl(), request.getImageUrl());
         
         if (updated) {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
