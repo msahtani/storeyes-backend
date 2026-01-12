@@ -68,12 +68,13 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
         LocalDateTime updatedAt
     );
     
-    // Update secondary video URL and mark as processed
+    // Update secondary video URL, image URL and mark as processed
     @Modifying
-    @Query("UPDATE Alert a SET a.secondaryVideoUrl = :secondaryVideoUrl, a.isProcessed = true, a.updatedAt = :updatedAt WHERE a.id = :id")
+    @Query("UPDATE Alert a SET a.secondaryVideoUrl = :secondaryVideoUrl, a.imageUrl = :imageUrl, a.isProcessed = true, a.updatedAt = :updatedAt WHERE a.id = :id")
     int updateSecondaryVideoAndMarkProcessed(
         Long id, 
         String secondaryVideoUrl, 
+        String imageUrl,
         LocalDateTime updatedAt
     );
 }

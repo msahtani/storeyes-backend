@@ -27,26 +27,26 @@ public class Alert {
     @Temporal(TemporalType.TIMESTAMP)
     private LocalDateTime alertDate;
 
-    @Column(name = "video_url", nullable = false)
+    @Column(name = "video_url", nullable = false, length = 1024)
     private String mainVideoUrl;
 
     @Column(name = "product_name")
     private String productName;
 
-    @Column(name = "image_url")
+    @Column(name = "image_url", length = 1024)
     private String imageUrl;
 
     @Column(name = "is_processed", columnDefinition = "boolean default false")
     private boolean isProcessed;
     
-    @Column(name = "secondary_video_url")
+    @Column(name = "secondary_video_url", length = 1024)
     private String secondaryVideoUrl;
 
     @Column(name = "human_judgement", nullable = false)
     @Enumerated(EnumType.STRING)
     private HumanJudgement humanJudgement;
 
-    @Column(name = "human_judgement_comment")
+    @Column(name = "human_judgement_comment", length = 1024)
     private String humanJudgementComment;
 
     @Column(name = "created_at", nullable = false)

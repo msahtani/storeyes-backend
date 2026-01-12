@@ -99,12 +99,12 @@ public class AlertService {
     }
     
     /**
-     * Update secondary video URL and mark alert as processed
+     * Update secondary video URL, image URL and mark alert as processed
      */
     @Transactional
-    public boolean updateSecondaryVideoAndMarkProcessed(Long alertId, String secondaryVideoUrl) {
+    public boolean updateSecondaryVideoAndMarkProcessed(Long alertId, String secondaryVideoUrl, String imageUrl) {
         LocalDateTime now = LocalDateTime.now();
-        int updated = alertRepository.updateSecondaryVideoAndMarkProcessed(alertId, secondaryVideoUrl, now);
+        int updated = alertRepository.updateSecondaryVideoAndMarkProcessed(alertId, secondaryVideoUrl, imageUrl, now);
         return updated > 0;
     }
 }
