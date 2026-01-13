@@ -4,6 +4,7 @@ import io.storeyes.storeyes_coffee.auth.dto.AuthResponse;
 import io.storeyes.storeyes_coffee.auth.dto.LoginRequest;
 import io.storeyes.storeyes_coffee.auth.dto.LogoutRequest;
 import io.storeyes.storeyes_coffee.auth.dto.RefreshTokenRequest;
+import io.storeyes.storeyes_coffee.auth.dto.UserInfoDTO;
 import io.storeyes.storeyes_coffee.auth.services.AuthService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -28,13 +29,15 @@ public class AuthController {
     }
 
     /**
-     * Login endpoint - exchanges username/password for tokens
+     * Login endpoint - exchanges username/email and password for tokens
      * 
      * POST /auth/login
      * 
+     * The username field accepts both username and email address (Keycloak supports both)
+     * 
      * Request body:
      * {
-     *   "username": "user@example.com",
+     *   "username": "user@example.com",  // Can be username or email
      *   "password": "password123"
      * }
      * 
@@ -145,6 +148,38 @@ public class AuthController {
             // from the client's perspective (they should clear local storage anyway)
             log.warn("Logout completed with warning: {}", e.getMessage());
             return ResponseEntity.ok(new MessageResponse("Logged out successfully"));
+        }
+    }
+
+    /**
+     * Get current user information endpoint
+     * 
+     * GET /auth/me
+     * 
+     * Requires: Authentication (JWT token in Authorization header)
+     * 
+     * Response:
+     * {
+     *   "id": "user-uuid",
+     *   "email": "user@example.com",
+     *   "firstName": "John",
+     *   "lastName": "Doe",
+     *   "preferredUsername": "johndoe"
+     * }
+     */
+    @GetMapping("/me")
+    public ResponseEntity<UserInfoDTO> getCurrentUser() {
+        try {
+            log.debug("User info requested");
+            
+            UserInfoDTO userInfo = authService.getUserInfo();
+            
+            log.debug("User info retrieved for user: {}", userInfo.getEmail());
+            return ResponseEntity.ok(userInfo);
+            
+        } catch (RuntimeException e) {
+            log.warn("Failed to get user info: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
     }
 

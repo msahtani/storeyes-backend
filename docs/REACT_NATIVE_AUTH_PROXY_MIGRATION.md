@@ -19,11 +19,13 @@ This guide explains how to migrate your React Native app from direct Keycloak au
 ### What Changes
 
 **Before:**
+
 - Mobile app calls Keycloak directly: `http://15.216.37.183/realms/storeyes/protocol/openid-connect/token`
 - App handles OAuth2 password grant flow
 - Android blocks HTTP connections → ❌ Network errors
 
 **After:**
+
 - Mobile app calls backend API: `https://api.storeyes.io/auth/login`
 - App uses simple REST API calls
 - All traffic is HTTPS → ✅ Works on Android
@@ -137,8 +139,8 @@ const TOKEN_EXPIRY_KEY = "@storeyes:token_expiry";
 
 class AuthService {
   /**
-   * Sign in with username and password
-   * @param {string} username - User username
+   * Sign in with username/email and password
+   * @param {string} username - User username or email address (Keycloak supports both)
    * @param {string} password - User password
    * @returns {Promise<Object>} Authentication result
    */
@@ -273,7 +275,11 @@ class AuthService {
         }
       );
 
-      const { accessToken, refreshToken: newRefreshToken, expiresIn } = response.data;
+      const {
+        accessToken,
+        refreshToken: newRefreshToken,
+        expiresIn,
+      } = response.data;
       await this.storeTokens(accessToken, newRefreshToken, expiresIn);
 
       return {
@@ -303,7 +309,7 @@ class AuthService {
   async signOut() {
     try {
       const refreshToken = await this.getRefreshToken();
-      
+
       // Try to revoke token on backend (best effort)
       if (refreshToken) {
         try {
@@ -334,6 +340,7 @@ class AuthService {
   /**
    * Get current authenticated user info (decode token)
    * @returns {Promise<Object|null>} User info or null
+   * @deprecated Use getUserInfo() instead to get data from backend API
    */
   async getCurrentUser() {
     try {
@@ -353,6 +360,35 @@ class AuthService {
       };
     } catch (error) {
       console.error("Error getting user info:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Get current authenticated user info from backend API
+   * Recommended: Gets user data from database if available, otherwise from JWT token
+   * @returns {Promise<Object|null>} User info or null
+   */
+  async getUserInfo() {
+    try {
+      const token = await this.getAccessToken();
+      if (!token) return null;
+
+      const response = await axios.get(`${API_BASE_URL}/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        // Token expired or invalid
+        console.warn("User info request failed: Unauthorized");
+        return null;
+      }
+      console.error("Error getting user info from API:", error);
       return null;
     }
   }
@@ -511,17 +547,17 @@ export default LoginScreen;
 
 ### Summary of Changes
 
-| Aspect | Before (Direct Keycloak) | After (Backend Proxy) |
-|--------|-------------------------|----------------------|
-| **Login URL** | `http://15.216.37.183/realms/storeyes/protocol/openid-connect/token` | `https://api.storeyes.io/auth/login` |
-| **Request Format** | `application/x-www-form-urlencoded` | `application/json` |
-| **Request Body** | `grant_type=password&client_id=...&username=...&password=...` | `{username: "...", password: "..."}` |
-| **Response Keys** | `access_token`, `refresh_token` | `accessToken`, `refreshToken` |
-| **Refresh URL** | Keycloak token endpoint | `https://api.storeyes.io/auth/refresh` |
-| **Logout URL** | Keycloak logout endpoint | `https://api.storeyes.io/auth/logout` |
-| **Android HTTP Issue** | ❌ Blocked | ✅ Solved (HTTPS only) |
-| **Token Storage** | ✅ Same (SecureStore/Keychain) | ✅ Same |
-| **API Calls** | ✅ Same (`Authorization: Bearer`) | ✅ Same |
+| Aspect                 | Before (Direct Keycloak)                                             | After (Backend Proxy)                  |
+| ---------------------- | -------------------------------------------------------------------- | -------------------------------------- |
+| **Login URL**          | `http://15.216.37.183/realms/storeyes/protocol/openid-connect/token` | `https://api.storeyes.io/auth/login`   |
+| **Request Format**     | `application/x-www-form-urlencoded`                                  | `application/json`                     |
+| **Request Body**       | `grant_type=password&client_id=...&username=...&password=...`        | `{username: "...", password: "..."}`   |
+| **Response Keys**      | `access_token`, `refresh_token`                                      | `accessToken`, `refreshToken`          |
+| **Refresh URL**        | Keycloak token endpoint                                              | `https://api.storeyes.io/auth/refresh` |
+| **Logout URL**         | Keycloak logout endpoint                                             | `https://api.storeyes.io/auth/logout`  |
+| **Android HTTP Issue** | ❌ Blocked                                                           | ✅ Solved (HTTPS only)                 |
+| **Token Storage**      | ✅ Same (SecureStore/Keychain)                                       | ✅ Same                                |
+| **API Calls**          | ✅ Same (`Authorization: Bearer`)                                    | ✅ Same                                |
 
 ---
 
@@ -563,7 +599,9 @@ class AuthService {
 
   async refreshAccessToken() {
     try {
-      const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+      const refreshToken = await SecureStore.getItemAsync(
+        STORAGE_KEYS.REFRESH_TOKEN
+      );
       if (!refreshToken) throw new Error("No refresh token");
 
       const response = await axios.post(
@@ -572,7 +610,11 @@ class AuthService {
         { headers: { "Content-Type": "application/json" } }
       );
 
-      const { accessToken, refreshToken: newRefreshToken, expiresIn } = response.data;
+      const {
+        accessToken,
+        refreshToken: newRefreshToken,
+        expiresIn,
+      } = response.data;
       await this.storeTokens(accessToken, newRefreshToken, expiresIn);
 
       return { success: true, accessToken, refreshToken: newRefreshToken };
@@ -584,13 +626,17 @@ class AuthService {
 
   async signOut() {
     try {
-      const refreshToken = await SecureStore.getItemAsync(STORAGE_KEYS.REFRESH_TOKEN);
+      const refreshToken = await SecureStore.getItemAsync(
+        STORAGE_KEYS.REFRESH_TOKEN
+      );
       if (refreshToken) {
-        await axios.post(
-          `${API_BASE_URL}/auth/logout`,
-          { refreshToken },
-          { headers: { "Content-Type": "application/json" } }
-        ).catch(() => {}); // Ignore errors
+        await axios
+          .post(
+            `${API_BASE_URL}/auth/logout`,
+            { refreshToken },
+            { headers: { "Content-Type": "application/json" } }
+          )
+          .catch(() => {}); // Ignore errors
       }
     } finally {
       await Promise.all([
@@ -606,7 +652,10 @@ class AuthService {
     await Promise.all([
       SecureStore.setItemAsync(STORAGE_KEYS.ACCESS_TOKEN, accessToken),
       SecureStore.setItemAsync(STORAGE_KEYS.REFRESH_TOKEN, refreshToken),
-      SecureStore.setItemAsync(STORAGE_KEYS.TOKEN_EXPIRY, expiryTime.toString()),
+      SecureStore.setItemAsync(
+        STORAGE_KEYS.TOKEN_EXPIRY,
+        expiryTime.toString()
+      ),
     ]);
   }
 
@@ -615,14 +664,16 @@ class AuthService {
   }
 
   async isTokenExpired() {
-    const expiryTime = await SecureStore.getItemAsync(STORAGE_KEYS.TOKEN_EXPIRY);
+    const expiryTime = await SecureStore.getItemAsync(
+      STORAGE_KEYS.TOKEN_EXPIRY
+    );
     return !expiryTime || Date.now() >= parseInt(expiryTime, 10);
   }
 
   async getCurrentUser() {
     const token = await this.getAccessToken();
     if (!token) return null;
-    
+
     try {
       const payload = JSON.parse(atob(token.split(".")[1]));
       return {
@@ -632,6 +683,32 @@ class AuthService {
         name: payload.name,
       };
     } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get current user info from backend API (recommended)
+   * Gets user data from database if available, otherwise from JWT token
+   */
+  async getUserInfo() {
+    try {
+      const token = await this.getAccessToken();
+      if (!token) return null;
+
+      const response = await axios.get(`${API_BASE_URL}/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        return null;
+      }
+      console.error("Error getting user info:", error);
       return null;
     }
   }
@@ -672,7 +749,20 @@ console.log("Token after logout:", token);
 // Expected: null
 ```
 
-### 4. Test Protected API Call
+### 4. Test Get User Info
+
+```javascript
+// Test getting user info from API (recommended)
+const userInfo = await AuthService.getUserInfo();
+console.log("User info:", userInfo);
+// Expected: { id: "...", email: "...", firstName: "...", lastName: "...", preferredUsername: "..." }
+
+// Alternative: Get user info by decoding token (deprecated)
+const user = await AuthService.getCurrentUser();
+console.log("User (from token):", user);
+```
+
+### 5. Test Protected API Call
 
 ```javascript
 // Test API call with token
@@ -682,6 +772,118 @@ const alerts = await apiClient.get("/api/alerts");
 console.log("Alerts:", alerts.data);
 // Expected: Array of alerts
 ```
+
+---
+
+## User Profile Screen Example
+
+Here's how to use the `/auth/me` endpoint in a profile screen:
+
+```javascript
+// screens/ProfileScreen.js
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import AuthService from "../services/AuthService";
+
+const ProfileScreen = () => {
+  const [userInfo, setUserInfo] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadUserInfo();
+  }, []);
+
+  const loadUserInfo = async () => {
+    try {
+      setLoading(true);
+      const user = await AuthService.getUserInfo();
+      if (user) {
+        setUserInfo(user);
+      } else {
+        Alert.alert("Error", "Failed to load user information");
+      }
+    } catch (error) {
+      console.error("Error loading user info:", error);
+      Alert.alert("Error", "Failed to load user information");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (!userInfo) {
+    return (
+      <View style={styles.container}>
+        <Text>No user information available</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Profile</Text>
+      <View style={styles.infoContainer}>
+        <Text style={styles.label}>Email:</Text>
+        <Text style={styles.value}>{userInfo.email}</Text>
+      </View>
+      <View style={styles.infoContainer}>
+        <Text style={styles.label}>First Name:</Text>
+        <Text style={styles.value}>{userInfo.firstName || "N/A"}</Text>
+      </View>
+      <View style={styles.infoContainer}>
+        <Text style={styles.label}>Last Name:</Text>
+        <Text style={styles.value}>{userInfo.lastName || "N/A"}</Text>
+      </View>
+      <View style={styles.infoContainer}>
+        <Text style={styles.label}>Username:</Text>
+        <Text style={styles.value}>{userInfo.preferredUsername || "N/A"}</Text>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#fff",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  infoContainer: {
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 5,
+  },
+  value: {
+    fontSize: 16,
+    color: "#000",
+  },
+});
+
+export default ProfileScreen;
+```
+
+**Key Points:**
+
+- Use `AuthService.getUserInfo()` to fetch user data from the backend API
+- The endpoint requires authentication (JWT token)
+- User data is retrieved from the database if available, otherwise from JWT token claims
+- Handle 401 errors (token expired) by redirecting to login
+- The response includes: `id`, `email`, `firstName`, `lastName`, `preferredUsername`
 
 ---
 
@@ -702,6 +904,7 @@ const API_BASE_URL = "http://api.storeyes.io";
 ### Issue: "Invalid username or password" but credentials are correct
 
 **Possible causes:**
+
 1. Backend is not running or unreachable
 2. Keycloak is not accessible from backend
 3. Username/password encoding issue
@@ -711,6 +914,7 @@ const API_BASE_URL = "http://api.storeyes.io";
 ### Issue: Token refresh fails
 
 **Possible causes:**
+
 1. Refresh token expired
 2. Backend refresh endpoint error
 3. Token storage corrupted
@@ -720,6 +924,7 @@ const API_BASE_URL = "http://api.storeyes.io";
 ### Issue: 401 Unauthorized on API calls
 
 **Possible causes:**
+
 1. Token expired and refresh failed
 2. Token not included in request
 3. Token format incorrect
@@ -762,4 +967,3 @@ const API_BASE_URL = "http://api.storeyes.io";
 - [Backend Auth Proxy Architecture](./BACKEND_AUTH_PROXY_ARCHITECTURE.md) - Architecture overview
 - [Keycloak Integration](./KEYCLOAK_INTEGRATION.md) - Backend Keycloak details
 - [React Native Quick Start](./REACT_NATIVE_QUICK_START.md) - Quick setup guide
-

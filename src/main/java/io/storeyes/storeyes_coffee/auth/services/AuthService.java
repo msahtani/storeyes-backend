@@ -1,6 +1,10 @@
 package io.storeyes.storeyes_coffee.auth.services;
 
 import io.storeyes.storeyes_coffee.auth.dto.AuthResponse;
+import io.storeyes.storeyes_coffee.auth.dto.UserInfoDTO;
+import io.storeyes.storeyes_coffee.auth.entities.UserInfo;
+import io.storeyes.storeyes_coffee.auth.repositories.UserInfoRepository;
+import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -21,6 +25,7 @@ import java.util.Map;
 public class AuthService {
 
     private final RestTemplate restTemplate;
+    private final UserInfoRepository userInfoRepository;
     
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
     private String keycloakIssuerUri;
@@ -28,14 +33,15 @@ public class AuthService {
     @Value("${spring.security.oauth2.resourceserver.jwt.audience}")
     private String clientId;
     
-    public AuthService(RestTemplate restTemplate) {
+    public AuthService(RestTemplate restTemplate, UserInfoRepository userInfoRepository) {
         this.restTemplate = restTemplate;
+        this.userInfoRepository = userInfoRepository;
     }
 
     /**
-     * Authenticate user with Keycloak using username and password
+     * Authenticate user with Keycloak using username/email and password
      * 
-     * @param username User's username
+     * @param username User's username or email address (Keycloak accepts both)
      * @param password User's password
      * @return AuthResponse containing access token, refresh token, and expiration info
      * @throws HttpClientErrorException if authentication fails
@@ -151,6 +157,48 @@ public class AuthService {
             // This is a best-effort revocation
             System.err.println("Failed to revoke token in Keycloak: " + e.getResponseBodyAsString());
         }
+    }
+
+    /**
+     * Get current user information from JWT token and database
+     * Returns user info from database if available, otherwise from JWT token
+     * 
+     * @return UserInfoDTO containing user information
+     * @throws RuntimeException if user is not authenticated
+     */
+    public UserInfoDTO getUserInfo() {
+        String userId = KeycloakTokenUtils.getUserId();
+        if (userId == null) {
+            throw new RuntimeException("User is not authenticated");
+        }
+        
+        // Try to get user info from database
+        UserInfo userInfo = userInfoRepository.findById(userId).orElse(null);
+        
+        // Get information from JWT token
+        String email = KeycloakTokenUtils.getEmail();
+        String firstName = KeycloakTokenUtils.getGivenName();
+        String lastName = KeycloakTokenUtils.getFamilyName();
+        String preferredUsername = KeycloakTokenUtils.getPreferredUsername();
+        
+        // Use database values if available, otherwise fall back to JWT token values
+        UserInfoDTO.UserInfoDTOBuilder builder = UserInfoDTO.builder()
+                .id(userId)
+                .preferredUsername(preferredUsername);
+        
+        if (userInfo != null) {
+            // Use database values
+            builder.email(userInfo.getEmail())
+                   .firstName(userInfo.getFirstName())
+                   .lastName(userInfo.getLastName());
+        } else {
+            // Use JWT token values
+            builder.email(email)
+                   .firstName(firstName)
+                   .lastName(lastName);
+        }
+        
+        return builder.build();
     }
 
     /**

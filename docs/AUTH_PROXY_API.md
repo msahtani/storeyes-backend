@@ -14,7 +14,9 @@ All endpoints require HTTPS.
 
 ### POST /auth/login
 
-Authenticate user with username and password.
+Authenticate user with username/email and password.
+
+**Note:** The `username` field accepts both username and email address. Keycloak supports authentication with either identifier.
 
 **Request:**
 
@@ -146,6 +148,48 @@ Content-Type: application/json
 
 ---
 
+### GET /auth/me
+
+Get current authenticated user information.
+
+**Requires Authentication:** Yes (JWT token in Authorization header)
+
+**Request:**
+
+```http
+GET /auth/me
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ...
+Content-Type: application/json
+```
+
+**Response (200 OK):**
+
+```json
+{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "email": "user@example.com",
+  "firstName": "John",
+  "lastName": "Doe",
+  "preferredUsername": "johndoe"
+}
+```
+
+**Response (401 Unauthorized):**
+
+```json
+{}
+```
+
+Returns empty response if token is missing, invalid, or expired.
+
+**Note:**
+
+- User information is retrieved from the database if available, otherwise from JWT token claims
+- The `id` field matches the Keycloak user ID
+- The `preferredUsername` field is always retrieved from the JWT token
+
+---
+
 ## Error Responses
 
 All error responses follow this format:
@@ -216,6 +260,14 @@ curl -X POST https://api.storeyes.io/auth/logout \
   -d '{
     "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ..."
   }'
+```
+
+#### Get Current User Info
+
+```bash
+curl -X GET https://api.storeyes.io/auth/me \
+  -H "Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ..." \
+  -H "Content-Type: application/json"
 ```
 
 #### Protected API Call

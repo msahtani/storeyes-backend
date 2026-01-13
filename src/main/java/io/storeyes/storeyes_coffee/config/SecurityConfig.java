@@ -70,10 +70,12 @@ public class SecurityConfig {
                 // Allow CORS preflight requests
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 
+                // User info endpoint requires authentication
+                .requestMatchers("/auth/me").authenticated()
+                
                 // Public authentication endpoints - allow login, refresh, logout without authentication
                 .requestMatchers("/auth/**").permitAll()
                 
-                // Public endpoints - /api/alerts/** is accessible without authentication
                 .requestMatchers("/api/alerts/**").permitAll()
 
                 .requestMatchers("/api/stream/**").permitAll()
