@@ -30,4 +30,12 @@ spring:
           audience: ${KEYCLOAK_AUDIENCE:storeyes-mobile}
 
 server:
-  port: ${SERVER_PORT:8080}
+  ssl:
+    enabled: true
+    key-store: ${SSL_KEYSTORE_PATH:file:keystore.p12}
+    key-store-password: ${SSL_KEYSTORE_PASSWORD:sahtout@2026}
+    key-store-type: ${SSL_KEYSTORE_TYPE:PKCS12}
+    key-alias: ${SSL_KEY_ALIAS:storeyes-blue}
+    key-password: ${SSL_KEYSTORE_PASSWORD:sahtout@2026}
+  http:
+    port: ${HTTP_PORT:8080}
