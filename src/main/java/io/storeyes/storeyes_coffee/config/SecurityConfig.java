@@ -63,6 +63,32 @@ public class SecurityConfig {
                     // Use custom converter to extract roles from Keycloak token
                     .jwtAuthenticationConverter(new KeycloakJwtAuthenticationConverter())
                 )
+                // Configure custom authentication entry point for JWT errors
+                .authenticationEntryPoint((request, response, authException) -> {
+                    // JWT validation errors - let GlobalExceptionHandler handle these
+                    // by throwing the exception (it will be caught by the exception handler)
+                    response.setStatus(401);
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+                    
+                    String message = "Invalid or expired token";
+                    if (authException.getMessage() != null) {
+                        String exMessage = authException.getMessage();
+                        if (exMessage.contains("expired")) {
+                            message = "Token has expired";
+                        } else if (exMessage.contains("invalid") || exMessage.contains("malformed")) {
+                            message = "Invalid token";
+                        } else if (exMessage.contains("audience")) {
+                            message = "Token audience validation failed";
+                        } else {
+                            message = exMessage.replace("\"", "\\\"");
+                        }
+                    }
+                    
+                    response.getWriter().write(
+                        "{\"error\":\"Unauthorized\",\"message\":\"" + message + "\"}"
+                    );
+                })
             )
             
             // Configure authorization rules
@@ -86,19 +112,40 @@ public class SecurityConfig {
             )
             
             // Handle exceptions
+            // Note: JWT validation errors are handled by the OAuth2 resource server's entry point above.
+            // This entry point handles cases where no authentication was attempted (missing token).
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint((request, response, authException) -> {
-                    response.setStatus(401);
-                    response.setContentType("application/json");
-                    response.setCharacterEncoding("UTF-8");
-                    String message = authException.getMessage() != null 
-                        ? authException.getMessage().replace("\"", "\\\"") 
-                        : "Authentication required";
-                    response.getWriter().write(
-                        "{\"error\":\"Unauthorized\",\"message\":\"" + message + "\"}"
-                    );
+                    // Only handle cases where no Authorization header was provided
+                    // JWT validation errors are handled by the OAuth2 resource server entry point
+                    String authHeader = request.getHeader("Authorization");
+                    
+                    if (authHeader == null || authHeader.trim().isEmpty()) {
+                        // No authentication attempt - truly missing authentication
+                        response.setStatus(401);
+                        response.setContentType("application/json");
+                        response.setCharacterEncoding("UTF-8");
+                        response.getWriter().write(
+                            "{\"error\":\"Unauthorized\",\"message\":\"Authentication required\"}"
+                        );
+                    } else {
+                        // There was an auth header but authentication failed
+                        // This should have been handled by OAuth2 resource server entry point,
+                        // but if it reaches here, provide a generic message
+                        response.setStatus(401);
+                        response.setContentType("application/json");
+                        response.setCharacterEncoding("UTF-8");
+                        String message = authException.getMessage() != null 
+                            ? authException.getMessage().replace("\"", "\\\"") 
+                            : "Authentication failed";
+                        response.getWriter().write(
+                            "{\"error\":\"Unauthorized\",\"message\":\"" + message + "\"}"
+                        );
+                    }
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    // Access denied - user authenticated but lacks permission
+                    // Let GlobalExceptionHandler handle this for consistent error format
                     response.setStatus(403);
                     response.setContentType("application/json");
                     response.setCharacterEncoding("UTF-8");
