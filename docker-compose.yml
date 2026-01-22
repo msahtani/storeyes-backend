@@ -4,7 +4,7 @@ services:
     container_name: storeyes-backend
     working_dir: /app
     volumes:
-      - ./backend:/app
+      - /opt/storeyes/backend:/app
     command: java -jar /app/app.jar
     ports:
       - "8080:8080"
