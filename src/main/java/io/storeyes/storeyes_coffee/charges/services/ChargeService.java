@@ -595,7 +595,6 @@ public class ChargeService {
 
         if (!previousCharges.isEmpty()) {
             FixedCharge previousCharge = previousCharges.get(0);
-            FixedCharge previousCharge = previousChargeOpt.get();
             BigDecimal previousAmount = previousCharge.getAmount();
             BigDecimal currentAmount = charge.getAmount();
 
