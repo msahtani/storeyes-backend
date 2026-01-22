@@ -77,11 +77,9 @@ public class SecurityConfig {
                 .requestMatchers("/auth/**").permitAll()
                 
                 .requestMatchers("/api/alerts/**").permitAll()
-
-                .requestMatchers("/api/stream/**").permitAll()
                 
                 // All other /api/** endpoints require authentication
-                .requestMatchers("/api/**").authenticated()
+                //.requestMatchers("/api/**").authenticated()
                 
                 // All other requests require authentication
                 .anyRequest().authenticated()
