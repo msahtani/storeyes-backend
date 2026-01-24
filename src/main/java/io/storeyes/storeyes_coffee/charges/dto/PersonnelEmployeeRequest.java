@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -35,4 +36,11 @@ public class PersonnelEmployeeRequest {
     
     @Positive(message = "Hours must be positive if provided")
     private Integer hours;
+    
+    /**
+     * Map of week keys to salary amounts for updating specific week salaries.
+     * Key format: "YYYY-MM-DD" (Monday date)
+     * Example: { "2024-01-22": 800.00 }
+     */
+    private Map<String, BigDecimal> weekSalaries;
 }

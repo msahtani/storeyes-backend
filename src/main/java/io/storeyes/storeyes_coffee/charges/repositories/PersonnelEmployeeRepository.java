@@ -19,12 +19,11 @@ public interface PersonnelEmployeeRepository extends JpaRepository<PersonnelEmpl
     
     /**
      * Find distinct employees for reuse (employee lookup)
-     * Returns distinct employees based on name, type, position, and startDate
-     * Grouped to avoid duplicates
-     * Filtered by store to show only employees from the same store
+     * Returns employees filtered by store and type
+     * Note: Service layer groups by name, type, position, and startDate to remove duplicates
      */
-    @Query("SELECT DISTINCT pe FROM PersonnelEmployee pe WHERE pe.fixedCharge.store.id = :storeId AND " +
+    @Query("SELECT pe FROM PersonnelEmployee pe WHERE pe.fixedCharge.store.id = :storeId AND " +
            "(:type IS NULL OR pe.type = :type) " +
-           "ORDER BY pe.name ASC")
+           "ORDER BY pe.name ASC, pe.id ASC")
     List<PersonnelEmployee> findDistinctEmployeesForReuse(@Param("storeId") Long storeId, @Param("type") EmployeeType type);
 }

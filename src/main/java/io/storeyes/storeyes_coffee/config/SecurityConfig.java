@@ -9,11 +9,19 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.OAuth2ErrorCodes;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
+import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+
+import java.time.Duration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -93,11 +101,35 @@ public class SecurityConfig {
                     response.setStatus(401);
                     response.setContentType("application/json");
                     response.setCharacterEncoding("UTF-8");
-                    String message = authException.getMessage() != null 
-                        ? authException.getMessage().replace("\"", "\\\"") 
-                        : "Authentication required";
+                    
+                    // Provide more helpful error messages
+                    String errorCode = "UNAUTHORIZED";
+                    String message = "Authentication required";
+                    
+                    if (authException.getMessage() != null) {
+                        String errorMsg = authException.getMessage();
+                        // Check for common JWT errors
+                        if (errorMsg.contains("expired") || errorMsg.contains("Jwt expired")) {
+                            errorCode = "TOKEN_EXPIRED";
+                            message = "Token has expired. Please refresh your token using /auth/refresh";
+                        } else if (errorMsg.contains("invalid") || errorMsg.contains("Invalid token")) {
+                            errorCode = "INVALID_TOKEN";
+                            message = "Invalid token. Please login again";
+                        } else if (errorMsg.contains("audience")) {
+                            errorCode = "INVALID_AUDIENCE";
+                            message = "Token audience mismatch";
+                        } else {
+                            message = errorMsg.replace("\"", "\\\"");
+                        }
+                    }
+                    
                     response.getWriter().write(
-                        "{\"error\":\"Unauthorized\",\"message\":\"" + message + "\"}"
+                        String.format(
+                            "{\"error\":\"%s\",\"message\":\"%s\",\"timestamp\":\"%s\"}",
+                            errorCode,
+                            message,
+                            java.time.OffsetDateTime.now()
+                        )
                     );
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
@@ -120,6 +152,7 @@ public class SecurityConfig {
      * JWT Decoder configured to validate tokens against Keycloak
      * Uses issuer URI for automatic OpenID Connect discovery and JWKS retrieval
      * Validates both issuer and audience claims
+     * Includes clock skew tolerance to handle minor time differences between servers
      */
     @Bean
     public JwtDecoder jwtDecoder() {
@@ -127,13 +160,31 @@ public class SecurityConfig {
         // This handles OpenID Connect discovery and retrieves keys from JWKS endpoint
         NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withIssuerLocation(issuerUri).build();
 
-        // Create validators
-        OAuth2TokenValidator<Jwt> issuerValidator = JwtValidators.createDefaultWithIssuer(issuerUri);
+        // Create validators manually to have full control over clock skew tolerance
+        // 1. Timestamp validator with clock skew tolerance (60 seconds)
+        //    This allows tokens to be accepted even if there's a small time difference
+        //    between the server and Keycloak (up to 60 seconds)
+        //    This helps with:
+        //    - Clock synchronization issues between servers
+        //    - Network latency
+        //    - Token refresh timing
+        OAuth2TokenValidator<Jwt> timestampValidator = new JwtTimestampValidator(
+            Duration.ofSeconds(60) // Clock skew tolerance: 60 seconds
+        );
+        
+        // 2. Issuer validator - validates that token was issued by the correct Keycloak realm
+        OAuth2TokenValidator<Jwt> issuerValidator = new JwtClaimValidator<String>(
+            JwtClaimNames.ISS,
+            issuerUri::equals
+        );
+        
+        // 3. Audience validator - validates that token is for the correct client
         OAuth2TokenValidator<Jwt> audienceValidator = new AudienceValidator(audience);
 
-        // Combine validators
+        // Combine all validators
+        // All validators must pass for the token to be accepted
         OAuth2TokenValidator<Jwt> combinedValidator = 
-            new DelegatingOAuth2TokenValidator<>(issuerValidator, audienceValidator);
+            new DelegatingOAuth2TokenValidator<>(timestampValidator, issuerValidator, audienceValidator);
 
         jwtDecoder.setJwtValidator(combinedValidator);
 

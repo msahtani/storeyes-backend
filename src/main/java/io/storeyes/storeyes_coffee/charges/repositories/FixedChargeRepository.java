@@ -40,6 +40,16 @@ public interface FixedChargeRepository extends JpaRepository<FixedCharge, Long> 
     List<FixedCharge> findByStoreIdAndCategoryAndMonthKeyAndPeriod(Long storeId, ChargeCategory category, String monthKey, ChargePeriod period);
     
     /**
+     * Find fixed charges by store, category, month key, and week key
+     */
+    List<FixedCharge> findByStoreIdAndCategoryAndMonthKeyAndWeekKey(Long storeId, ChargeCategory category, String monthKey, String weekKey);
+    
+    /**
+     * Find fixed charges by store, month key, and week key
+     */
+    List<FixedCharge> findByStoreIdAndMonthKeyAndWeekKey(Long storeId, String monthKey, String weekKey);
+    
+    /**
      * Find previous fixed charge for trend calculation
      * Looks for a charge with same store, category and period, but previous month/week
      */
