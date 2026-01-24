@@ -13,12 +13,23 @@ import java.util.List;
 public interface VariableChargeRepository extends JpaRepository<VariableCharge, Long> {
     
     /**
-     * Find variable charges by store and date range
+     * Find variable charges by store and date range (all parameters required)
      */
     @Query("SELECT vc FROM VariableCharge vc WHERE vc.store.id = :storeId AND " +
-           "(:startDate IS NULL OR vc.date >= :startDate) AND " +
-           "(:endDate IS NULL OR vc.date <= :endDate) AND " +
-           "(:category IS NULL OR vc.category = :category) " +
+           "vc.date >= :startDate AND vc.date <= :endDate " +
+           "ORDER BY vc.date DESC")
+    List<VariableCharge> findByStoreIdAndDateRange(
+            @Param("storeId") Long storeId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+    
+    /**
+     * Find variable charges by store, date range, and category
+     */
+    @Query("SELECT vc FROM VariableCharge vc WHERE vc.store.id = :storeId AND " +
+           "vc.date >= :startDate AND vc.date <= :endDate AND " +
+           "vc.category = :category " +
            "ORDER BY vc.date DESC")
     List<VariableCharge> findByStoreIdAndDateRangeAndCategory(
             @Param("storeId") Long storeId,
@@ -26,6 +37,11 @@ public interface VariableChargeRepository extends JpaRepository<VariableCharge, 
             @Param("endDate") LocalDate endDate,
             @Param("category") String category
     );
+    
+    /**
+     * Find all variable charges by store
+     */
+    List<VariableCharge> findByStoreIdOrderByDateDesc(Long storeId);
     
     /**
      * Find variable charges by store and category

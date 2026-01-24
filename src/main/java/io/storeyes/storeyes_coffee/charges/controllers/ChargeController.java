@@ -71,14 +71,37 @@ public class ChargeController {
      */
     @PostMapping("/fixed")
     public ResponseEntity<Map<String, Object>> createFixedCharge(@Valid @RequestBody FixedChargeCreateRequest request) {
-        FixedChargeResponse charge = chargeService.createFixedCharge(request);
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("data", charge);
-        response.put("message", "Fixed charge created successfully");
-        response.put("timestamp", java.time.OffsetDateTime.now());
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        try {
+            FixedChargeResponse charge = chargeService.createFixedCharge(request);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("data", charge);
+            response.put("message", "Fixed charge created successfully");
+            response.put("timestamp", java.time.OffsetDateTime.now());
+            
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (RuntimeException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Failed to create charge");
+            errorResponse.put("message", e.getMessage() != null ? e.getMessage() : "An error occurred while creating the charge");
+            errorResponse.put("timestamp", java.time.OffsetDateTime.now());
+            
+            HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
+            String message = e.getMessage();
+            if (message != null) {
+                String lowerMessage = message.toLowerCase();
+                if (lowerMessage.contains("not found") || 
+                    lowerMessage.contains("required") ||
+                    lowerMessage.contains("invalid") ||
+                    lowerMessage.contains("must be") ||
+                    lowerMessage.contains("cannot be null") ||
+                    lowerMessage.contains("format")) {
+                    status = HttpStatus.BAD_REQUEST;
+                }
+            }
+            
+            return ResponseEntity.status(status).body(errorResponse);
+        }
     }
 
     /**
@@ -117,6 +140,27 @@ public class ChargeController {
     @GetMapping("/fixed/month/{monthKey}")
     public ResponseEntity<Map<String, Object>> getFixedChargesByMonth(@PathVariable String monthKey) {
         List<FixedChargeResponse> charges = chargeService.getFixedChargesByMonth(monthKey);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", charges);
+        response.put("message", "Fixed charges retrieved successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get fixed charges by week for a specific month
+     * GET /api/charges/fixed/month/{monthKey}/week/{weekKey}
+     * Useful for displaying week-by-week breakdown of personnel charges
+     */
+    @GetMapping("/fixed/month/{monthKey}/week/{weekKey}")
+    public ResponseEntity<Map<String, Object>> getFixedChargesByWeek(
+            @PathVariable String monthKey,
+            @PathVariable String weekKey,
+            @RequestParam(required = false) ChargeCategory category) {
+        
+        List<FixedChargeResponse> charges = chargeService.getFixedChargesByWeek(monthKey, weekKey, category);
         
         Map<String, Object> response = new HashMap<>();
         response.put("data", charges);
