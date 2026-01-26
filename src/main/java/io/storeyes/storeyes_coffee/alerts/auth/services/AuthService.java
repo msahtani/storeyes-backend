@@ -1,10 +1,13 @@
 package io.storeyes.storeyes_coffee.alerts.auth.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.storeyes.storeyes_coffee.alerts.auth.dto.AuthResponse;
 import io.storeyes.storeyes_coffee.alerts.auth.dto.UserInfoDTO;
 import io.storeyes.storeyes_coffee.alerts.auth.entities.UserInfo;
+import io.storeyes.storeyes_coffee.alerts.auth.exceptions.TokenRefreshException;
 import io.storeyes.storeyes_coffee.alerts.auth.repositories.UserInfoRepository;
 import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -22,20 +25,30 @@ import java.util.Map;
  * allowing the app to use HTTPS while Keycloak may only be available over HTTP
  */
 @Service
+@Slf4j
 public class AuthService {
 
     private final RestTemplate restTemplate;
     private final UserInfoRepository userInfoRepository;
+    private final ObjectMapper objectMapper;
     
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
     private String keycloakIssuerUri;
     
+    /**
+     * Client ID for Keycloak authentication
+     * CRITICAL: This must match the client_id used during login.
+     * The same client_id must be used for both login and refresh token operations.
+     * Configured via: spring.security.oauth2.resourceserver.jwt.audience
+     * Default: storeyes-mobile
+     */
     @Value("${spring.security.oauth2.resourceserver.jwt.audience}")
     private String clientId;
     
     public AuthService(RestTemplate restTemplate, UserInfoRepository userInfoRepository) {
         this.restTemplate = restTemplate;
         this.userInfoRepository = userInfoRepository;
+        this.objectMapper = new ObjectMapper();
     }
 
     /**
@@ -91,18 +104,31 @@ public class AuthService {
      * 
      * @param refreshToken The refresh token to use
      * @return AuthResponse containing new access token, refresh token, and expiration info
-     * @throws HttpClientErrorException if token refresh fails
+     * @throws TokenRefreshException if token refresh fails with OAuth2-compliant error information
      */
     public AuthResponse refreshToken(String refreshToken) {
+        // Validate inputs
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            throw new TokenRefreshException("invalid_request", "Refresh token is required");
+        }
+        
+        if (clientId == null || clientId.isEmpty()) {
+            throw new TokenRefreshException("server_error", "Client ID is not configured");
+        }
+        
         String tokenEndpoint = keycloakIssuerUri + "/protocol/openid-connect/token";
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         
+        // Build request body with all required parameters
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("grant_type", "refresh_token");
-        body.add("client_id", clientId);
+        body.add("client_id", clientId); // CRITICAL: Must match the client used for login
         body.add("refresh_token", refreshToken);
+        
+        log.debug("Refreshing token with client_id: {}", clientId);
+        log.debug("Token endpoint: {}", tokenEndpoint);
         
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
         
@@ -115,20 +141,99 @@ public class AuthService {
             
             Map<String, Object> responseBody = response.getBody();
             if (responseBody == null) {
-                throw new RuntimeException("Empty response from Keycloak");
+                throw new TokenRefreshException("server_error", "Empty response from Keycloak");
+            }
+            
+            // Ensure refresh token is present (required for token rotation)
+            String newRefreshToken = (String) responseBody.get("refresh_token");
+            if (newRefreshToken == null || newRefreshToken.isEmpty()) {
+                // If Keycloak didn't return a new refresh token, use the old one
+                // This handles cases where token rotation is disabled
+                newRefreshToken = refreshToken;
             }
             
             return AuthResponse.builder()
                 .accessToken((String) responseBody.get("access_token"))
-                .refreshToken((String) responseBody.get("refresh_token"))
+                .refreshToken(newRefreshToken)
                 .expiresIn(getExpiresIn(responseBody))
                 .tokenType((String) responseBody.getOrDefault("token_type", "Bearer"))
                 .build();
                 
-        } catch (HttpClientErrorException.Unauthorized e) {
-            throw new RuntimeException("Invalid or expired refresh token", e);
         } catch (HttpClientErrorException e) {
-            throw new RuntimeException("Token refresh failed: " + e.getResponseBodyAsString(), e);
+            // Log the error for debugging
+            log.warn("Keycloak token refresh failed. Status: {}, Response: {}, Client ID: {}", 
+                e.getStatusCode(), e.getResponseBodyAsString(), clientId);
+            
+            // Parse Keycloak error response to extract OAuth2 error information
+            String error = "invalid_grant";
+            String errorDescription = "Token refresh failed";
+            
+            try {
+                String responseBody = e.getResponseBodyAsString();
+                if (responseBody != null && !responseBody.isEmpty()) {
+                    // Try to parse as JSON
+                    Map<String, Object> errorMap = objectMapper.readValue(responseBody, Map.class);
+                    error = (String) errorMap.getOrDefault("error", error);
+                    errorDescription = (String) errorMap.getOrDefault("error_description", errorDescription);
+                    
+                    log.debug("Parsed Keycloak error: {} - {}", error, errorDescription);
+                }
+            } catch (Exception parseException) {
+                // If parsing fails, try to extract error from response body string
+                String responseBody = e.getResponseBodyAsString();
+                if (responseBody != null) {
+                    // Check for specific error patterns
+                    String lowerResponseBody = responseBody.toLowerCase();
+                    
+                    if (lowerResponseBody.contains("session doesn't have required client") ||
+                        lowerResponseBody.contains("session does not have required client")) {
+                        error = "invalid_request";
+                        errorDescription = "Session doesn't have required client. Ensure client_id matches the client used for login.";
+                        log.error("Client ID mismatch detected! Used client_id: {}. This usually means the refresh token was issued for a different client.", clientId);
+                    } else if (lowerResponseBody.contains("token is not active") || 
+                               lowerResponseBody.contains("invalid_grant")) {
+                        error = "invalid_grant";
+                        errorDescription = "Token is not active";
+                    } else if (lowerResponseBody.contains("invalid client")) {
+                        error = "invalid_client";
+                        errorDescription = "Invalid client ID: " + clientId;
+                    } else {
+                        errorDescription = responseBody;
+                    }
+                }
+            }
+            
+            // Determine appropriate error code based on HTTP status and error message
+            // Note: "Token is not active" should be treated as invalid_grant (401) even if Keycloak returns 400
+            boolean isTokenNotActive = errorDescription != null && 
+                errorDescription.toLowerCase().contains("token is not active");
+            
+            if (isTokenNotActive) {
+                // "Token is not active" means the refresh token is invalid/expired/already used
+                // This should be treated as invalid_grant (401 Unauthorized), not invalid_request
+                log.debug("Detected 'Token is not active' error - mapping to invalid_grant (401)");
+                error = "invalid_grant";
+            } else if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                if (!"invalid_request".equals(error) && !"invalid_client".equals(error)) {
+                    error = "invalid_grant";
+                    if (errorDescription == null || errorDescription.equals("Token refresh failed")) {
+                        errorDescription = "Invalid or expired refresh token";
+                    }
+                }
+            } else if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
+                // For 400 errors, keep the parsed error unless it's a token validity issue
+                // "Session doesn't have required client" and "Invalid client" should remain as-is
+                if (!"invalid_grant".equals(error) && !"invalid_request".equals(error) && !"invalid_client".equals(error)) {
+                    error = "invalid_request";
+                }
+            } else {
+                error = "server_error";
+            }
+            
+            log.debug("Final error mapping: error={}, errorDescription={}, httpStatus={}", 
+                error, errorDescription, e.getStatusCode());
+            
+            throw new TokenRefreshException(error, errorDescription, e);
         }
     }
 
