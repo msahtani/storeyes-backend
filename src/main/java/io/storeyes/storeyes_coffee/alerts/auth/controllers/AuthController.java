@@ -6,11 +6,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.storeyes.storeyes_coffee.alerts.auth.dto.AuthErrorResponse;
 import io.storeyes.storeyes_coffee.alerts.auth.dto.AuthResponse;
 import io.storeyes.storeyes_coffee.alerts.auth.dto.LoginRequest;
 import io.storeyes.storeyes_coffee.alerts.auth.dto.LogoutRequest;
 import io.storeyes.storeyes_coffee.alerts.auth.dto.RefreshTokenRequest;
 import io.storeyes.storeyes_coffee.alerts.auth.dto.UserInfoDTO;
+import io.storeyes.storeyes_coffee.alerts.auth.exceptions.TokenRefreshException;
 import io.storeyes.storeyes_coffee.alerts.auth.services.AuthService;
 
 /**
@@ -69,12 +71,20 @@ public class AuthController {
             
             // Map different error types to appropriate HTTP status codes
             if (e.getMessage() != null && e.getMessage().contains("Invalid username or password")) {
+                AuthErrorResponse errorResponse = new AuthErrorResponse(
+                    "invalid_grant",
+                    "Invalid username or password"
+                );
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResponse("Invalid username or password"));
+                    .body(errorResponse);
             }
             
+            AuthErrorResponse errorResponse = new AuthErrorResponse(
+                "server_error",
+                "Authentication failed: " + e.getMessage()
+            );
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("Authentication failed: " + e.getMessage()));
+                .body(errorResponse);
         }
     }
 
@@ -88,12 +98,18 @@ public class AuthController {
      *   "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI..."
      * }
      * 
-     * Response:
+     * Response (success):
      * {
      *   "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI...",
      *   "refreshToken": "eyJhbGciOiJSUzI1NiIsInR5cCI...",
      *   "expiresIn": 300,
      *   "tokenType": "Bearer"
+     * }
+     * 
+     * Response (error):
+     * {
+     *   "error": "invalid_grant",
+     *   "error_description": "Token is not active"
      * }
      */
     @PostMapping("/refresh")
@@ -106,16 +122,37 @@ public class AuthController {
             log.debug("Token refresh successful");
             return ResponseEntity.ok(response);
             
-        } catch (RuntimeException e) {
-            log.warn("Token refresh failed: {}", e.getMessage());
+        } catch (TokenRefreshException e) {
+            log.warn("Token refresh failed: {} - {}", e.getError(), e.getErrorDescription());
             
-            if (e.getMessage() != null && e.getMessage().contains("Invalid or expired refresh token")) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new ErrorResponse("Invalid or expired refresh token"));
+            // Determine HTTP status code based on error type
+            HttpStatus status;
+            if ("invalid_grant".equals(e.getError())) {
+                status = HttpStatus.UNAUTHORIZED;
+            } else if ("invalid_request".equals(e.getError())) {
+                status = HttpStatus.BAD_REQUEST;
+            } else {
+                status = HttpStatus.INTERNAL_SERVER_ERROR;
             }
             
+            AuthErrorResponse errorResponse = new AuthErrorResponse(
+                e.getError(),
+                e.getErrorDescription()
+            );
+            
+            return ResponseEntity.status(status).body(errorResponse);
+            
+        } catch (RuntimeException e) {
+            log.warn("Token refresh failed with unexpected error: {}", e.getMessage());
+            
+            // Fallback for any other runtime exceptions
+            AuthErrorResponse errorResponse = new AuthErrorResponse(
+                "server_error",
+                "Token refresh failed: " + e.getMessage()
+            );
+            
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse("Token refresh failed: " + e.getMessage()));
+                .body(errorResponse);
         }
     }
 
@@ -181,21 +218,6 @@ public class AuthController {
         } catch (RuntimeException e) {
             log.warn("Failed to get user info: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-    }
-
-    /**
-     * Simple error response DTO
-     */
-    private static class ErrorResponse {
-        private String error;
-        
-        public ErrorResponse(String error) {
-            this.error = error;
-        }
-        
-        public String getError() {
-            return error;
         }
     }
 
