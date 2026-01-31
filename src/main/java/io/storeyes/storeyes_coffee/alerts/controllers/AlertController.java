@@ -116,11 +116,5 @@ public class AlertController {
      * 
      * Returns alerts for today for the specified store
      */
-    @GetMapping("/today")
-    public ResponseEntity<List<AlertSummaryDTO>> getTodayAlerts(
-            @RequestParam @NotNull(message = "store_id is required") Long store_id) {
-        List<AlertSummaryDTO> alerts = alertService.getTodayAlertsByStoreId(store_id);
-        return ResponseEntity.ok(alerts);
-    }
 }
 
