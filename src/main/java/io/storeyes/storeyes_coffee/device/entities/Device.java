@@ -13,7 +13,9 @@ import io.storeyes.storeyes_coffee.store.entities.Store;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "devices")    
+@Table(name = "devices", indexes = {
+    @Index(name = "idx_board_id", columnList = "board_id")
+})    
 public class Device {
 
     @Id
@@ -25,12 +27,13 @@ public class Device {
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
-    @Column(name = "device_id", nullable = false)
-    private String deviceId;
+    @Column(name = "board_id", unique = true, nullable = false)
+    private String boardId;
+
+    @Column(name = "machine_id", nullable = false)
+    private String machineId;
 
     @Column(name = "device_type", nullable = false)
     private DeviceType deviceType;
-
-
 
 }

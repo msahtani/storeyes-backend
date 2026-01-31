@@ -165,5 +165,22 @@ public class AlertService {
                         .build())
                 .collect(Collectors.toList());
     }
+    
+    /**
+     * Get alert summaries (alertId and alertDate) by date and store_id
+     * Returns all alerts (regardless of processed status) for the specified date and store
+     */
+    public List<AlertSummaryDTO> getAlertSummariesByDateAndStoreId(LocalDate date, Long storeId) {
+        // Find alerts by date and store
+        List<Alert> alerts = alertRepository.findByAlertDateAndStoreId(date, storeId);
+        
+        // Map to summary DTO
+        return alerts.stream()
+                .map(alert -> AlertSummaryDTO.builder()
+                        .alertId(alert.getId())
+                        .alertDate(alert.getAlertDate())
+                        .build())
+                .collect(Collectors.toList());
+    }
 }
 

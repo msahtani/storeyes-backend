@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import io.storeyes.storeyes_coffee.alerts.entities.HumanJudgement;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -86,6 +87,10 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
     // Find alerts by today's date and store ID
     @Query("SELECT a FROM Alert a WHERE DATE(a.alertDate) = DATE(:today) AND a.store.id = :storeId AND a.isProcessed = false ORDER BY a.alertDate")
     List<Alert> findByTodayAndStoreId(LocalDateTime today, Long storeId);
+    
+    // Find all alerts by exact date (day) and store ID (regardless of processed status)
+    @Query("SELECT a FROM Alert a WHERE DATE(a.alertDate) = :date AND a.store.id = :storeId ORDER BY a.alertDate DESC")
+    List<Alert> findByAlertDateAndStoreId(LocalDate date, Long storeId);
     
     // Update human judgement directly via query
     @Modifying
