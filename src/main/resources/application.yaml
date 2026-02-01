@@ -1,6 +1,9 @@
 spring:
   application:
     name: storeyes-coffee
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/storeyes_coffee}
@@ -11,7 +14,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -32,7 +35,7 @@ spring:
 server:
   port: ${SERVER_PORT:8443}
   ssl:
-    enabled: true
+    enabled: ${SSL_ENABLED:true}
     key-store: ${SSL_KEYSTORE_PATH:file:keystore.p12}
     key-store-password: ${SSL_KEYSTORE_PASSWORD:sahtout@2026}
     key-store-type: ${SSL_KEYSTORE_TYPE:PKCS12}
