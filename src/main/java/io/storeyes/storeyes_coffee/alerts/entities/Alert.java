@@ -13,6 +13,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import io.storeyes.storeyes_coffee.sales.entities.Sales;
 import io.storeyes.storeyes_coffee.store.entities.Store;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Data
 @NoArgsConstructor
@@ -35,6 +37,7 @@ public class Alert {
 
     @ManyToOne
     @JoinColumn(name = "store_id", nullable = false, columnDefinition = "BIGINT DEFAULT 1")
+    @JsonIgnoreProperties({"alerts", "devices"})
     private Store store;
 
 
@@ -71,6 +74,7 @@ public class Alert {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "alert", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JsonManagedReference
     @Builder.Default
     private List<Sales> sales = new ArrayList<>();
 
