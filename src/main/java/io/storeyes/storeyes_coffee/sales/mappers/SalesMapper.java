@@ -14,3 +14,4 @@ public interface SalesMapper {
     List<SalesDTO> toDTOList(List<Sales> sales);
 }
 
+

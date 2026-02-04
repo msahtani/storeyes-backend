@@ -8,6 +8,7 @@ import lombok.Builder;
 import org.hibernate.annotations.CreationTimestamp;
 
 import io.storeyes.storeyes_coffee.alerts.entities.Alert;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import java.time.LocalDateTime;
 
@@ -27,6 +28,7 @@ public class Sales {
 
     @ManyToOne
     @JoinColumn(name = "alert_id", nullable = false)
+    @JsonBackReference
     private Alert alert;
 
     @Column(name = "sold_at", nullable = false)

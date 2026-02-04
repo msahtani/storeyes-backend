@@ -6,6 +6,7 @@ import io.storeyes.storeyes_coffee.alerts.dto.CreateAlertRequest;
 import io.storeyes.storeyes_coffee.alerts.dto.UpdateHumanJudgementRequest;
 import io.storeyes.storeyes_coffee.alerts.dto.UpdateSecondaryVideoRequest;
 import io.storeyes.storeyes_coffee.alerts.entities.Alert;
+import io.storeyes.storeyes_coffee.alerts.mappers.AlertMapper;
 import io.storeyes.storeyes_coffee.alerts.services.AlertService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import java.util.List;
 public class AlertController {
     
     private final AlertService alertService;
+    private final AlertMapper alertMapper;
     
     /**
      * Create a new alert
@@ -36,13 +38,14 @@ public class AlertController {
     
 
     @GetMapping
-    public ResponseEntity<List<Alert>> getAlertsByDate(
+    public ResponseEntity<List<AlertDTO>> getAlertsByDate(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(required = false) Boolean unprocessed,
             @RequestParam(required = false) Long store_id) {
         List<Alert> alerts = alertService.getAlertsByDate(date, endDate, unprocessed, store_id);
-        return ResponseEntity.ok(alerts);
+        List<AlertDTO> alertDTOs = alertMapper.toDTOList(alerts);
+        return ResponseEntity.ok(alertDTOs);
     }
 
     

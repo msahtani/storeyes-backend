@@ -23,3 +23,4 @@ public class ProcessSalesRequest {
     private LocalDate date;
 }
 
+
