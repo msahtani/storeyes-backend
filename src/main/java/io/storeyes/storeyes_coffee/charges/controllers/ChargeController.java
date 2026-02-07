@@ -186,6 +186,39 @@ public class ChargeController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Get authenticated user's last used period for personnel fixed charges (week or month).
+     * GET /api/charges/fixed/personnel/last-period
+     */
+    @GetMapping("/fixed/personnel/last-period")
+    public ResponseEntity<Map<String, Object>> getPersonnelChargeLastPeriod() {
+        java.util.Optional<String> period = chargeService.getPersonnelChargeLastPeriod();
+        Map<String, Object> data = new HashMap<>();
+        data.put("period", period.orElse("month"));
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", data);
+        response.put("message", "Last period retrieved successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Save authenticated user's last used period for personnel fixed charges.
+     * PUT /api/charges/fixed/personnel/last-period
+     */
+    @PutMapping("/fixed/personnel/last-period")
+    public ResponseEntity<Map<String, Object>> setPersonnelChargeLastPeriod(
+            @Valid @RequestBody SetPersonnelLastPeriodRequest request) {
+        chargeService.setPersonnelChargeLastPeriod(request.getPeriod());
+        Map<String, Object> data = new HashMap<>();
+        data.put("period", request.getPeriod());
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", data);
+        response.put("message", "Last period saved successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.ok(response);
+    }
+
     // ==================== Variable Charges Endpoints ====================
 
     /**
