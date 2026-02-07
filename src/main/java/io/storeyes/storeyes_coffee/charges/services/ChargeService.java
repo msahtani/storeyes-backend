@@ -2,6 +2,8 @@ package io.storeyes.storeyes_coffee.charges.services;
 
 import io.storeyes.storeyes_coffee.charges.dto.*;
 import io.storeyes.storeyes_coffee.charges.entities.*;
+import io.storeyes.storeyes_coffee.alerts.auth.entities.UserPreference;
+import io.storeyes.storeyes_coffee.alerts.auth.repositories.UserPreferenceRepository;
 import io.storeyes.storeyes_coffee.charges.repositories.FixedChargeRepository;
 import io.storeyes.storeyes_coffee.charges.repositories.PersonnelEmployeeRepository;
 import io.storeyes.storeyes_coffee.charges.repositories.PersonnelWeekSalaryRepository;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -38,10 +41,12 @@ public class ChargeService {
     private final StoreService storeService;
     private final EmployeeRepository employeeRepository;
     private final EntityManager entityManager;
+    private final UserPreferenceRepository userPreferenceRepository;
 
     private static final BigDecimal THRESHOLD_PERCENTAGE = BigDecimal.valueOf(20);
     private static final int SCALE = 2;
     private static final int PRECISION_SCALE = 4;
+    private static final String PREFERENCE_PERSONNEL_LAST_PERIOD = "personnel_charge_last_period";
 
     // ==================== Fixed Charges ====================
 
@@ -1498,5 +1503,42 @@ public class ChargeService {
         } catch (Exception e) {
             return monthKey;
         }
+    }
+
+    // ==================== User preferences (personnel last period) ====================
+
+    /**
+     * Get the authenticated user's last used period for personnel fixed charges (week or month).
+     * Used to pre-select period when creating a new personnel charge on another month.
+     */
+    public Optional<String> getPersonnelChargeLastPeriod() {
+        String userId = KeycloakTokenUtils.getUserId();
+        if (userId == null) {
+            return Optional.empty();
+        }
+        return userPreferenceRepository.findByUserIdAndPreferenceKey(userId, PREFERENCE_PERSONNEL_LAST_PERIOD)
+                .map(UserPreference::getPreferenceValue);
+    }
+
+    /**
+     * Save the authenticated user's last used period for personnel fixed charges.
+     */
+    @Transactional
+    public void setPersonnelChargeLastPeriod(String period) {
+        if (period == null || (!period.equals("week") && !period.equals("month"))) {
+            return;
+        }
+        String userId = KeycloakTokenUtils.getUserId();
+        if (userId == null) {
+            return;
+        }
+        UserPreference pref = userPreferenceRepository.findByUserIdAndPreferenceKey(userId, PREFERENCE_PERSONNEL_LAST_PERIOD)
+                .orElse(UserPreference.builder()
+                        .userId(userId)
+                        .preferenceKey(PREFERENCE_PERSONNEL_LAST_PERIOD)
+                        .build());
+        pref.setPreferenceValue(period);
+        pref.setUpdatedAt(OffsetDateTime.now());
+        userPreferenceRepository.save(pref);
     }
 }
