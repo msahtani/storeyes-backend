@@ -23,6 +23,13 @@ public class FixedChargeCreateRequest {
     
     @NotNull(message = "Category is required")
     private ChargeCategory category;
+
+    /**
+     * Custom name for fixed charge when category is OTHER (e.g. "Rent", "Insurance").
+     * Required when category is OTHER; ignored otherwise.
+     */
+    @Size(max = 255, message = "Name must not exceed 255 characters")
+    private String name;
     
     @Positive(message = "Amount must be positive")
     private BigDecimal amount; // Optional, can be calculated from employees

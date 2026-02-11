@@ -17,6 +17,9 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class FixedChargeUpdateRequest {
+    @Size(max = 255, message = "Name must not exceed 255 characters")
+    private String name;
+
     @Positive(message = "Amount must be positive if provided")
     private BigDecimal amount;
     
