@@ -1,8 +1,7 @@
 package io.storeyes.storeyes_coffee.charges.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,28 +16,41 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class VariableChargeCreateRequest {
-    
-    @NotBlank(message = "Name is required")
-    @Size(max = 200, message = "Name must not exceed 200 characters")
-    private String name;
-    
-    @NotNull(message = "Amount is required")
-    @Positive(message = "Amount must be positive")
-    private BigDecimal amount;
-    
+
     @NotNull(message = "Date is required")
     private LocalDate date;
-    
-    @NotBlank(message = "Category is required")
-    @Size(max = 50, message = "Category must not exceed 50 characters")
-    private String category;
-    
+
+    @NotNull(message = "Main category is required")
+    private Long mainCategoryId;
+
+    /** For non-Stock main category (e.g. Achat exceptionnel): required. For Stock with product: optional (derived from product). */
+    @Size(max = 200, message = "Name must not exceed 200 characters")
+    private String name;
+
+    /** For non-Stock: required. For Stock with product: optional (computed from quantity × unit_price if not sent). */
+    @DecimalMin(value = "0", inclusive = true, message = "Amount must be 0 or positive")
+    private BigDecimal amount;
+
+    /** For Stock path: sub-category (e.g. Raw materials, Hygiene). */
+    private Long subCategoryId;
+
+    /** For Stock path: product from stock_products. */
+    private Long productId;
+
+    /** For Stock path: quantity when product is selected. */
+    @DecimalMin(value = "0", inclusive = false, message = "Quantity must be positive when provided")
+    private BigDecimal quantity;
+
+    /** For Stock path: unit price (optional override from product). */
+    @DecimalMin(value = "0", inclusive = true, message = "Unit price must be 0 or positive when provided")
+    private BigDecimal unitPrice;
+
     @Size(max = 200, message = "Supplier must not exceed 200 characters")
     private String supplier;
-    
+
     @Size(max = 1000, message = "Notes must not exceed 1000 characters")
     private String notes;
-    
+
     @Size(max = 500, message = "Purchase order URL must not exceed 500 characters")
     private String purchaseOrderUrl;
 }

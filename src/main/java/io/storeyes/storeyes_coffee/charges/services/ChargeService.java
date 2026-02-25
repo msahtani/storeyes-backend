@@ -7,8 +7,12 @@ import io.storeyes.storeyes_coffee.charges.entities.*;
 import io.storeyes.storeyes_coffee.charges.repositories.FixedChargeRepository;
 import io.storeyes.storeyes_coffee.charges.repositories.PersonnelEmployeeRepository;
 import io.storeyes.storeyes_coffee.charges.repositories.PersonnelWeekSalaryRepository;
+import io.storeyes.storeyes_coffee.charges.repositories.VariableChargeMainCategoryRepository;
+import io.storeyes.storeyes_coffee.charges.repositories.VariableChargeSubCategoryRepository;
 import io.storeyes.storeyes_coffee.charges.repositories.VariableChargeRepository;
 import io.storeyes.storeyes_coffee.charges.repositories.EmployeeRepository;
+import io.storeyes.storeyes_coffee.stock.entities.StockProduct;
+import io.storeyes.storeyes_coffee.stock.repositories.StockProductRepository;
 import io.storeyes.storeyes_coffee.charges.utils.WeekCalculationUtils;
 import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
 import io.storeyes.storeyes_coffee.store.entities.Store;
@@ -37,6 +41,9 @@ public class ChargeService {
     private final PersonnelEmployeeRepository personnelEmployeeRepository;
     private final PersonnelWeekSalaryRepository personnelWeekSalaryRepository;
     private final VariableChargeRepository variableChargeRepository;
+    private final VariableChargeMainCategoryRepository variableChargeMainCategoryRepository;
+    private final VariableChargeSubCategoryRepository variableChargeSubCategoryRepository;
+    private final StockProductRepository stockProductRepository;
     private final StoreRepository storeRepository;
     private final StoreService storeService;
     private final EmployeeRepository employeeRepository;
@@ -511,24 +518,80 @@ public class ChargeService {
     }
 
     /**
-     * Create variable charge
+     * Create variable charge.
+     * Requires mainCategoryId and date. For Stock with product: subCategoryId, productId, quantity; amount/name can be computed.
+     * For non-Stock (or Stock without product): name and amount required.
      */
     @Transactional
     public VariableChargeResponse createVariableCharge(VariableChargeCreateRequest request) {
-        // Get store from authenticated user
         Long storeId = getStoreId();
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new RuntimeException("Store not found with id: " + storeId));
 
+        VariableChargeMainCategory mainCategory = variableChargeMainCategoryRepository.findById(request.getMainCategoryId())
+                .orElseThrow(() -> new RuntimeException("Main category not found with id: " + request.getMainCategoryId()));
+        if (!mainCategory.getStore().getId().equals(storeId)) {
+            throw new RuntimeException("Main category does not belong to your store");
+        }
+
+        boolean isStock = "stock".equalsIgnoreCase(mainCategory.getCode());
+        VariableChargeSubCategory subCategory = null;
+        StockProduct product = null;
+        String name;
+        BigDecimal amount;
+        String category = mainCategory.getName();
+
+        if (isStock && request.getProductId() != null) {
+            if (request.getSubCategoryId() == null) {
+                throw new RuntimeException("Sub-category is required when selecting a product (Stock)");
+            }
+            if (request.getQuantity() == null || request.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("Quantity is required and must be positive when selecting a product (Stock)");
+            }
+            subCategory = variableChargeSubCategoryRepository.findById(request.getSubCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Sub-category not found with id: " + request.getSubCategoryId()));
+            if (!subCategory.getMainCategory().getId().equals(mainCategory.getId())) {
+                throw new RuntimeException("Sub-category does not belong to the selected main category");
+            }
+            product = stockProductRepository.findById(request.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Stock product not found with id: " + request.getProductId()));
+            if (!product.getStore().getId().equals(storeId)) {
+                throw new RuntimeException("Stock product does not belong to your store");
+            }
+            boolean productInSub = product.getSubCategory().getId().equals(subCategory.getId())
+                    || (product.getSubCategory().getParentSubCategory() != null
+                    && product.getSubCategory().getParentSubCategory().getId().equals(subCategory.getId()));
+            if (!productInSub) {
+                throw new RuntimeException("Product does not belong to the selected sub-category");
+            }
+            BigDecimal unitPrice = request.getUnitPrice() != null ? request.getUnitPrice() : product.getUnitPrice();
+            amount = request.getAmount() != null ? request.getAmount() : request.getQuantity().multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+            name = request.getName() != null && !request.getName().isBlank() ? request.getName().trim() : product.getName();
+        } else {
+            if (request.getName() == null || request.getName().isBlank()) {
+                throw new RuntimeException("Name is required");
+            }
+            if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) < 0) {
+                throw new RuntimeException("Amount is required and must be 0 or positive");
+            }
+            name = request.getName().trim();
+            amount = request.getAmount();
+        }
+
         VariableCharge charge = VariableCharge.builder()
                 .store(store)
-                .name(request.getName())
-                .amount(request.getAmount())
+                .mainCategory(mainCategory)
+                .subCategory(subCategory)
+                .product(product)
+                .name(name)
+                .amount(amount)
                 .date(request.getDate())
-                .category(request.getCategory())
-                .supplier(request.getSupplier())
-                .notes(request.getNotes())
-                .purchaseOrderUrl(request.getPurchaseOrderUrl())
+                .category(category)
+                .quantity(request.getQuantity())
+                .unitPrice(product != null ? (request.getUnitPrice() != null ? request.getUnitPrice() : product.getUnitPrice()) : null)
+                .supplier(request.getSupplier() != null ? request.getSupplier().trim() : null)
+                .notes(request.getNotes() != null ? request.getNotes().trim() : null)
+                .purchaseOrderUrl(request.getPurchaseOrderUrl() != null ? request.getPurchaseOrderUrl().trim() : null)
                 .build();
 
         VariableCharge savedCharge = variableChargeRepository.save(charge);
@@ -536,41 +599,90 @@ public class ChargeService {
     }
 
     /**
-     * Update variable charge
-     * Verifies charge belongs to authenticated user's store
+     * Update variable charge. Verifies charge belongs to authenticated user's store.
+     * When updating Stock product fields, validates sub-category and product belong to store.
      */
     @Transactional
     public VariableChargeResponse updateVariableCharge(Long id, VariableChargeUpdateRequest request) {
         Long storeId = getStoreId();
-        
         VariableCharge charge = variableChargeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Variable charge not found with id: " + id));
-
-        // Verify charge belongs to user's store
         if (!charge.getStore().getId().equals(storeId)) {
             throw new RuntimeException("Variable charge not found with id: " + id);
         }
 
+        if (request.getDate() != null) {
+            charge.setDate(request.getDate());
+        }
+        if (request.getMainCategoryId() != null) {
+            VariableChargeMainCategory mainCategory = variableChargeMainCategoryRepository.findById(request.getMainCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Main category not found with id: " + request.getMainCategoryId()));
+            if (!mainCategory.getStore().getId().equals(storeId)) {
+                throw new RuntimeException("Main category does not belong to your store");
+            }
+            charge.setMainCategory(mainCategory);
+            charge.setCategory(mainCategory.getName());
+        }
+        if (request.getSubCategoryId() != null) {
+            VariableChargeSubCategory subCategory = variableChargeSubCategoryRepository.findById(request.getSubCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Sub-category not found with id: " + request.getSubCategoryId()));
+            if (!subCategory.getMainCategory().getStore().getId().equals(storeId)) {
+                throw new RuntimeException("Sub-category does not belong to your store");
+            }
+            charge.setSubCategory(subCategory);
+        }
+        if (request.getProductId() != null) {
+            StockProduct product = stockProductRepository.findById(request.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Stock product not found with id: " + request.getProductId()));
+            if (!product.getStore().getId().equals(storeId)) {
+                throw new RuntimeException("Stock product does not belong to your store");
+            }
+            if (charge.getSubCategory() != null) {
+                boolean productInSub = product.getSubCategory().getId().equals(charge.getSubCategory().getId())
+                        || (product.getSubCategory().getParentSubCategory() != null
+                        && product.getSubCategory().getParentSubCategory().getId().equals(charge.getSubCategory().getId()));
+                if (!productInSub) {
+                    throw new RuntimeException("Product does not belong to the selected sub-category");
+                }
+            }
+            charge.setProduct(product);
+            if (request.getQuantity() != null) {
+                charge.setQuantity(request.getQuantity());
+            }
+            if (request.getUnitPrice() != null) {
+                charge.setUnitPrice(request.getUnitPrice());
+            } else if (product != null) {
+                charge.setUnitPrice(product.getUnitPrice());
+            }
+            if (request.getAmount() != null) {
+                charge.setAmount(request.getAmount());
+            } else if (request.getQuantity() != null && charge.getUnitPrice() != null) {
+                charge.setAmount(request.getQuantity().multiply(charge.getUnitPrice()).setScale(2, RoundingMode.HALF_UP));
+            }
+            if (request.getName() == null && product != null) {
+                charge.setName(product.getName());
+            }
+        }
         if (request.getName() != null) {
-            charge.setName(request.getName());
+            charge.setName(request.getName().trim());
         }
         if (request.getAmount() != null) {
             charge.setAmount(request.getAmount());
         }
-        if (request.getDate() != null) {
-            charge.setDate(request.getDate());
+        if (request.getQuantity() != null && charge.getProduct() == null) {
+            charge.setQuantity(request.getQuantity());
         }
-        if (request.getCategory() != null) {
-            charge.setCategory(request.getCategory());
+        if (request.getUnitPrice() != null) {
+            charge.setUnitPrice(request.getUnitPrice());
         }
         if (request.getSupplier() != null) {
-            charge.setSupplier(request.getSupplier());
+            charge.setSupplier(request.getSupplier().trim());
         }
         if (request.getNotes() != null) {
-            charge.setNotes(request.getNotes());
+            charge.setNotes(request.getNotes().trim());
         }
         if (request.getPurchaseOrderUrl() != null) {
-            charge.setPurchaseOrderUrl(request.getPurchaseOrderUrl());
+            charge.setPurchaseOrderUrl(request.getPurchaseOrderUrl().trim());
         }
 
         VariableCharge updatedCharge = variableChargeRepository.save(charge);
@@ -594,6 +706,152 @@ public class ChargeService {
         }
 
         variableChargeRepository.deleteById(id);
+    }
+
+    // ==================== Variable Charge Main Categories ====================
+
+    /**
+     * Get all variable charge main categories for the authenticated user's store.
+     * GET /api/charges/variable/main-categories
+     */
+    public List<VariableChargeMainCategoryResponse> getVariableChargeMainCategories() {
+        Long storeId = getStoreId();
+        return variableChargeMainCategoryRepository.findByStoreIdOrderBySortOrderAsc(storeId).stream()
+                .map(this::toVariableChargeMainCategoryResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get variable charge main category by ID. Verifies it belongs to the store.
+     * GET /api/charges/variable/main-categories/{id}
+     */
+    public VariableChargeMainCategoryResponse getVariableChargeMainCategoryById(Long id) {
+        Long storeId = getStoreId();
+        VariableChargeMainCategory category = variableChargeMainCategoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Variable charge main category not found with id: " + id));
+        if (!category.getStore().getId().equals(storeId)) {
+            throw new RuntimeException("Variable charge main category not found with id: " + id);
+        }
+        return toVariableChargeMainCategoryResponse(category);
+    }
+
+    /**
+     * Create a new variable charge main category for the authenticated user's store.
+     * POST /api/charges/variable/main-categories
+     */
+    @Transactional
+    public VariableChargeMainCategoryResponse createVariableChargeMainCategory(CreateVariableChargeMainCategoryRequest request) {
+        Long storeId = getStoreId();
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new RuntimeException("Store not found with id: " + storeId));
+
+        VariableChargeMainCategory category = VariableChargeMainCategory.builder()
+                .store(store)
+                .name(request.getName().trim())
+                .code(request.getCode() != null ? request.getCode().trim() : null)
+                .sortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0)
+                .build();
+
+        VariableChargeMainCategory saved = variableChargeMainCategoryRepository.save(category);
+        return toVariableChargeMainCategoryResponse(saved);
+    }
+
+    /**
+     * Update variable charge main category. Verifies it belongs to the store.
+     * PUT /api/charges/variable/main-categories/{id}
+     */
+    @Transactional
+    public VariableChargeMainCategoryResponse updateVariableChargeMainCategory(Long id, UpdateVariableChargeMainCategoryRequest request) {
+        Long storeId = getStoreId();
+        VariableChargeMainCategory category = variableChargeMainCategoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Variable charge main category not found with id: " + id));
+        if (!category.getStore().getId().equals(storeId)) {
+            throw new RuntimeException("Variable charge main category not found with id: " + id);
+        }
+
+        if (request.getName() != null) {
+            category.setName(request.getName().trim());
+        }
+        if (request.getCode() != null) {
+            category.setCode(request.getCode().trim().isEmpty() ? null : request.getCode().trim());
+        }
+        if (request.getSortOrder() != null) {
+            category.setSortOrder(request.getSortOrder());
+        }
+
+        VariableChargeMainCategory updated = variableChargeMainCategoryRepository.save(category);
+        return toVariableChargeMainCategoryResponse(updated);
+    }
+
+    /**
+     * Delete variable charge main category. Verifies it belongs to the store.
+     * DELETE /api/charges/variable/main-categories/{id}
+     */
+    @Transactional
+    public void deleteVariableChargeMainCategory(Long id) {
+        Long storeId = getStoreId();
+        VariableChargeMainCategory category = variableChargeMainCategoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Variable charge main category not found with id: " + id));
+        if (!category.getStore().getId().equals(storeId)) {
+            throw new RuntimeException("Variable charge main category not found with id: " + id);
+        }
+        variableChargeMainCategoryRepository.deleteById(id);
+    }
+
+    private VariableChargeMainCategoryResponse toVariableChargeMainCategoryResponse(VariableChargeMainCategory category) {
+        return VariableChargeMainCategoryResponse.builder()
+                .id(category.getId())
+                .name(category.getName())
+                .code(category.getCode())
+                .sortOrder(category.getSortOrder())
+                .createdAt(category.getCreatedAt())
+                .updatedAt(category.getUpdatedAt())
+                .build();
+    }
+
+    /**
+     * Get direct sub-categories of a main category (e.g. for Stock: Raw materials, Hygiene, Packaging, Cash register).
+     * GET /api/charges/variable/main-categories/{mainCategoryId}/sub-categories
+     */
+    public List<VariableChargeSubCategoryResponse> getSubCategoriesByMainCategoryId(Long mainCategoryId) {
+        Long storeId = getStoreId();
+        VariableChargeMainCategory mainCategory = variableChargeMainCategoryRepository.findById(mainCategoryId)
+                .orElseThrow(() -> new RuntimeException("Variable charge main category not found with id: " + mainCategoryId));
+        if (!mainCategory.getStore().getId().equals(storeId)) {
+            throw new RuntimeException("Variable charge main category not found with id: " + mainCategoryId);
+        }
+        return variableChargeSubCategoryRepository.findByMainCategoryIdAndParentSubCategoryIdIsNullOrderBySortOrderAsc(mainCategoryId).stream()
+                .map(this::toVariableChargeSubCategoryResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get child sub-categories of a sub-category (e.g. for Raw materials: Bar, Cuisine, Congelateur, Soda).
+     * GET /api/charges/variable/sub-categories/{subCategoryId}/children
+     */
+    public List<VariableChargeSubCategoryResponse> getSubCategoryChildren(Long subCategoryId) {
+        Long storeId = getStoreId();
+        VariableChargeSubCategory parent = variableChargeSubCategoryRepository.findById(subCategoryId)
+                .orElseThrow(() -> new RuntimeException("Variable charge sub-category not found with id: " + subCategoryId));
+        if (!parent.getMainCategory().getStore().getId().equals(storeId)) {
+            throw new RuntimeException("Variable charge sub-category not found with id: " + subCategoryId);
+        }
+        return variableChargeSubCategoryRepository.findByParentSubCategoryIdOrderBySortOrderAsc(subCategoryId).stream()
+                .map(this::toVariableChargeSubCategoryResponse)
+                .collect(Collectors.toList());
+    }
+
+    private VariableChargeSubCategoryResponse toVariableChargeSubCategoryResponse(VariableChargeSubCategory sub) {
+        return VariableChargeSubCategoryResponse.builder()
+                .id(sub.getId())
+                .mainCategoryId(sub.getMainCategory().getId())
+                .parentSubCategoryId(sub.getParentSubCategory() != null ? sub.getParentSubCategory().getId() : null)
+                .name(sub.getName())
+                .code(sub.getCode())
+                .sortOrder(sub.getSortOrder())
+                .createdAt(sub.getCreatedAt())
+                .updatedAt(sub.getUpdatedAt())
+                .build();
     }
 
     // ==================== Salary Calculation Logic ====================
@@ -1483,6 +1741,9 @@ public class ChargeService {
     }
 
     private VariableChargeResponse toVariableChargeResponse(VariableCharge charge) {
+        VariableChargeMainCategory mainCat = charge.getMainCategory();
+        VariableChargeSubCategory subCat = charge.getSubCategory();
+        StockProduct prod = charge.getProduct();
         return VariableChargeResponse.builder()
                 .id(charge.getId())
                 .name(charge.getName())
@@ -1494,6 +1755,14 @@ public class ChargeService {
                 .purchaseOrderUrl(charge.getPurchaseOrderUrl())
                 .createdAt(charge.getCreatedAt())
                 .updatedAt(charge.getUpdatedAt())
+                .mainCategoryId(mainCat != null ? mainCat.getId() : null)
+                .mainCategoryName(mainCat != null ? mainCat.getName() : null)
+                .subCategoryId(subCat != null ? subCat.getId() : null)
+                .subCategoryName(subCat != null ? subCat.getName() : null)
+                .productId(prod != null ? prod.getId() : null)
+                .productName(prod != null ? prod.getName() : null)
+                .quantity(charge.getQuantity())
+                .unitPrice(charge.getUnitPrice())
                 .build();
     }
 

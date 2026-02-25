@@ -24,4 +24,19 @@ public class VariableChargeResponse {
     private String purchaseOrderUrl;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    /** New fields: main category */
+    private Long mainCategoryId;
+    private String mainCategoryName;
+
+    /** Sub-category (e.g. Raw materials, Bar). */
+    private Long subCategoryId;
+    private String subCategoryName;
+
+    /** Product when Stock path. */
+    private Long productId;
+    private String productName;
+
+    private BigDecimal quantity;
+    private BigDecimal unitPrice;
 }

@@ -301,4 +301,103 @@ public class ChargeController {
         chargeService.deleteVariableCharge(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
+
+    // ==================== Variable Charge Main Categories ====================
+
+    /**
+     * Get all variable charge main categories (store-scoped).
+     * GET /api/charges/variable/main-categories
+     */
+    @GetMapping("/variable/main-categories")
+    public ResponseEntity<Map<String, Object>> getVariableChargeMainCategories() {
+        List<VariableChargeMainCategoryResponse> categories = chargeService.getVariableChargeMainCategories();
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", categories);
+        response.put("message", "Variable charge main categories retrieved successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get variable charge main category by ID.
+     * GET /api/charges/variable/main-categories/{id}
+     */
+    @GetMapping("/variable/main-categories/{id}")
+    public ResponseEntity<Map<String, Object>> getVariableChargeMainCategoryById(@PathVariable Long id) {
+        VariableChargeMainCategoryResponse category = chargeService.getVariableChargeMainCategoryById(id);
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", category);
+        response.put("message", "Variable charge main category retrieved successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Create variable charge main category.
+     * POST /api/charges/variable/main-categories
+     */
+    @PostMapping("/variable/main-categories")
+    public ResponseEntity<Map<String, Object>> createVariableChargeMainCategory(
+            @Valid @RequestBody CreateVariableChargeMainCategoryRequest request) {
+        VariableChargeMainCategoryResponse category = chargeService.createVariableChargeMainCategory(request);
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", category);
+        response.put("message", "Variable charge main category created successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Update variable charge main category.
+     * PUT /api/charges/variable/main-categories/{id}
+     */
+    @PutMapping("/variable/main-categories/{id}")
+    public ResponseEntity<Map<String, Object>> updateVariableChargeMainCategory(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateVariableChargeMainCategoryRequest request) {
+        VariableChargeMainCategoryResponse category = chargeService.updateVariableChargeMainCategory(id, request);
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", category);
+        response.put("message", "Variable charge main category updated successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Delete variable charge main category.
+     * DELETE /api/charges/variable/main-categories/{id}
+     */
+    @DeleteMapping("/variable/main-categories/{id}")
+    public ResponseEntity<Void> deleteVariableChargeMainCategory(@PathVariable Long id) {
+        chargeService.deleteVariableChargeMainCategory(id);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    /**
+     * Get direct sub-categories of a main category (e.g. for Stock: Raw materials, Hygiene, Packaging, Cash register).
+     * GET /api/charges/variable/main-categories/{mainCategoryId}/sub-categories
+     */
+    @GetMapping("/variable/main-categories/{mainCategoryId}/sub-categories")
+    public ResponseEntity<Map<String, Object>> getSubCategoriesByMainCategoryId(@PathVariable Long mainCategoryId) {
+        List<VariableChargeSubCategoryResponse> subCategories = chargeService.getSubCategoriesByMainCategoryId(mainCategoryId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", subCategories);
+        response.put("message", "Sub-categories retrieved successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get child sub-categories of a sub-category (e.g. for Raw materials: Bar, Cuisine, Congelateur, Soda).
+     * GET /api/charges/variable/sub-categories/{subCategoryId}/children
+     */
+    @GetMapping("/variable/sub-categories/{subCategoryId}/children")
+    public ResponseEntity<Map<String, Object>> getSubCategoryChildren(@PathVariable Long subCategoryId) {
+        List<VariableChargeSubCategoryResponse> children = chargeService.getSubCategoryChildren(subCategoryId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", children);
+        response.put("message", "Sub-category children retrieved successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.ok(response);
+    }
 }

@@ -1,5 +1,6 @@
 package io.storeyes.storeyes_coffee.charges.entities;
 
+import io.storeyes.storeyes_coffee.stock.entities.StockProduct;
 import io.storeyes.storeyes_coffee.store.entities.Store;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -38,6 +39,18 @@ public class VariableCharge {
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "main_category_id", nullable = false)
+    private VariableChargeMainCategory mainCategory;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sub_category_id")
+    private VariableChargeSubCategory subCategory;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id")
+    private StockProduct product;
+
     @Column(name = "name", nullable = false, length = 200)
     private String name;
 
@@ -50,6 +63,12 @@ public class VariableCharge {
 
     @Column(name = "category", nullable = false, length = 50)
     private String category;
+
+    @Column(name = "quantity", precision = 12, scale = 2)
+    private BigDecimal quantity;
+
+    @Column(name = "unit_price", precision = 12, scale = 2)
+    private BigDecimal unitPrice;
 
     @Column(name = "supplier", length = 200)
     private String supplier;
