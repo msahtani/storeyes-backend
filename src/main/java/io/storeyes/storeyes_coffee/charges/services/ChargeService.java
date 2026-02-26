@@ -13,6 +13,7 @@ import io.storeyes.storeyes_coffee.charges.repositories.VariableChargeRepository
 import io.storeyes.storeyes_coffee.charges.repositories.EmployeeRepository;
 import io.storeyes.storeyes_coffee.stock.entities.StockProduct;
 import io.storeyes.storeyes_coffee.stock.repositories.StockProductRepository;
+import io.storeyes.storeyes_coffee.stock.services.StockMovementService;
 import io.storeyes.storeyes_coffee.charges.utils.WeekCalculationUtils;
 import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
 import io.storeyes.storeyes_coffee.store.entities.Store;
@@ -44,6 +45,7 @@ public class ChargeService {
     private final VariableChargeMainCategoryRepository variableChargeMainCategoryRepository;
     private final VariableChargeSubCategoryRepository variableChargeSubCategoryRepository;
     private final StockProductRepository stockProductRepository;
+    private final StockMovementService stockMovementService;
     private final StoreRepository storeRepository;
     private final StoreService storeService;
     private final EmployeeRepository employeeRepository;
@@ -595,6 +597,7 @@ public class ChargeService {
                 .build();
 
         VariableCharge savedCharge = variableChargeRepository.save(charge);
+        stockMovementService.recordPurchase(savedCharge);
         return toVariableChargeResponse(savedCharge);
     }
 
