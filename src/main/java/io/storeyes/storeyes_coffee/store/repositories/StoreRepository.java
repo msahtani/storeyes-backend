@@ -14,9 +14,9 @@ public interface StoreRepository extends JpaRepository<Store, Long>, JpaSpecific
      * Find store by code
      */
     Optional<Store> findByCode(String code);
-    
+
     /**
-     * Find store by owner ID (Keycloak user ID)
+     * Find store by owner ID (Keycloak user ID). Fallback when RoleMapping doesn't exist.
      */
     Optional<Store> findByOwner_Id(String ownerId);
 }

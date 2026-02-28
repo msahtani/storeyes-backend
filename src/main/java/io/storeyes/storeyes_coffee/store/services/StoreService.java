@@ -9,6 +9,8 @@ import io.storeyes.storeyes_coffee.store.entities.StoreStatus;
 import io.storeyes.storeyes_coffee.store.mappers.StoreMapper;
 import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
 import io.storeyes.storeyes_coffee.store.specifications.StoreSpecification;
+import io.storeyes.storeyes_coffee.rolemapping.entities.Roles;
+import io.storeyes.storeyes_coffee.rolemapping.repositories.RoleMappingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,6 +27,7 @@ public class StoreService {
     
     private final StoreRepository storeRepository;
     private final StoreMapper storeMapper;
+    private final RoleMappingRepository roleMappingRepository;
     
     /**
      * Create a new store
@@ -68,12 +71,20 @@ public class StoreService {
     }
     
     /**
-     * Get store by owner ID (Keycloak user ID)
+     * Get store entity by user ID. Tries RoleMapping (OWNER role) first, falls back to store.owner_id.
+     */
+    public Store getStoreEntityByOwnerId(String userId) {
+        return roleMappingRepository.findByUser_IdAndRole(userId, Roles.OWNER)
+                .map(rm -> rm.getStore())
+                .or(() -> storeRepository.findByOwner_Id(userId))
+                .orElseThrow(() -> new RuntimeException("Store not found for user with id: " + userId));
+    }
+
+    /**
+     * Get store by owner ID (Keycloak user ID) - resolves store via RoleMapping (OWNER role).
      */
     public StoreDTO getStoreByOwnerId(String ownerId) {
-        Store store = storeRepository.findByOwner_Id(ownerId)
-                .orElseThrow(() -> new RuntimeException("Store not found for owner with id: " + ownerId));
-        return storeMapper.toDTO(store);
+        return storeMapper.toDTO(getStoreEntityByOwnerId(ownerId));
     }
     
     /**

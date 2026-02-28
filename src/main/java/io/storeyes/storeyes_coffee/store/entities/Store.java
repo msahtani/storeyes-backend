@@ -1,5 +1,6 @@
 package io.storeyes.storeyes_coffee.store.entities;
 
+import io.storeyes.storeyes_coffee.auth.entities.UserInfo;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,8 +8,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
-import io.storeyes.storeyes_coffee.auth.entities.UserInfo;
 
 import java.time.LocalDateTime;
 
@@ -29,7 +28,7 @@ public class Store {
     private String code;
 
     @ManyToOne
-    @JoinColumn(name = "owner_id", nullable = false)
+    @JoinColumn(name = "owner_id")
     private UserInfo owner;
 
     @Column(name = "name", nullable = false)

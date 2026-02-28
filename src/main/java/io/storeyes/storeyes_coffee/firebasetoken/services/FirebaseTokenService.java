@@ -7,7 +7,7 @@ import io.storeyes.storeyes_coffee.firebasetoken.entities.FirebaseToken;
 import io.storeyes.storeyes_coffee.firebasetoken.repositories.FirebaseTokenRepository;
 import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
 import io.storeyes.storeyes_coffee.store.entities.Store;
-import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
+import io.storeyes.storeyes_coffee.store.services.StoreService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,7 +22,7 @@ public class FirebaseTokenService {
 
     private final FirebaseTokenRepository firebaseTokenRepository;
     private final UserInfoRepository userInfoRepository;
-    private final StoreRepository storeRepository;
+    private final StoreService storeService;
 
     /**
      * Inserts a Firebase token for the authenticated user and their store.
@@ -40,9 +40,7 @@ public class FirebaseTokenService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "User not found with id: " + userId));
 
-        Store store = storeRepository.findByOwner_Id(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Store not found for user with id: " + userId));
+        Store store = storeService.getStoreEntityByOwnerId(userId);
 
         String sessionId = UUID.randomUUID().toString();
 
