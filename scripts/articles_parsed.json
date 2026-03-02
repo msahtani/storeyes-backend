@@ -1,0 +1,1428 @@
+{
+  "Jus": [
+    {
+      "article": "Orange Juice (Freshly Squeezed)",
+      "prix_vente": 26,
+      "recipe": [
+        {
+          "ingredient": "Orange cl",
+          "quantity": 25.0
+        }
+      ]
+    },
+    {
+      "article": "American Lemonade (Citronnade maison)",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "Citron cl",
+          "quantity": 25.0
+        }
+      ]
+    },
+    {
+      "article": "Fraise – Lait",
+      "prix_vente": 34,
+      "recipe": [
+        {
+          "ingredient": "Fraise (g)",
+          "quantity": 50.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Fraise",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Fraise (g)",
+          "quantity": 70.0
+        }
+      ]
+    },
+    {
+      "article": "Avocat",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "Avocat (g)",
+          "quantity": 50.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Royal Avocat Fruits Secs",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Avocat (g)",
+          "quantity": 50.0
+        },
+        {
+          "ingredient": "Fruits secs",
+          "quantity": 30.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Mangue",
+      "prix_vente": 38,
+      "recipe": [
+        {
+          "ingredient": "Mangue (g)",
+          "quantity": 100.0
+        }
+      ]
+    },
+    {
+      "article": "Ananas",
+      "prix_vente": 38,
+      "recipe": [
+        {
+          "ingredient": "Ananas (g)",
+          "quantity": 200.0
+        }
+      ]
+    },
+    {
+      "article": "Detox (Orange, Gingembre & Citron)",
+      "prix_vente": 42,
+      "recipe": [
+        {
+          "ingredient": "Orange cl",
+          "quantity": 15.0
+        },
+        {
+          "ingredient": "Citron cl",
+          "quantity": 10.0
+        },
+        {
+          "ingredient": "Gingembre",
+          "quantity": 10.0
+        }
+      ]
+    }
+  ],
+  "Boisson chaude": [
+    {
+      "article": "Espresso Standard",
+      "prix_vente": 14,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 9.0
+        }
+      ]
+    },
+    {
+      "article": "Espresso Vanille",
+      "prix_vente": 18,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 9.0
+        }
+      ]
+    },
+    {
+      "article": "Espresso Chocolat",
+      "prix_vente": 22,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 9.0
+        }
+      ]
+    },
+    {
+      "article": "Espresso Chocolat Bi",
+      "prix_vente": 22,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 9.0
+        },
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 15.0
+        }
+      ]
+    },
+    {
+      "article": "Espresso Pistachio",
+      "prix_vente": 22,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 9.0
+        }
+      ]
+    },
+    {
+      "article": "Espresso Pistachio C",
+      "prix_vente": 26,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 9.0
+        },
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 15.0
+        }
+      ]
+    },
+    {
+      "article": "MOITIE MOITIE MAROCA",
+      "prix_vente": 18,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 9.0
+        },
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 15.0
+        }
+      ]
+    },
+    {
+      "article": "nespresso",
+      "prix_vente": 22,
+      "recipe": [
+        {
+          "ingredient": "capsule",
+          "quantity": 1.0
+        }
+      ]
+    },
+    {
+      "article": "Americano Standard",
+      "prix_vente": 18,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 14.0
+        }
+      ]
+    },
+    {
+      "article": "Americano Vanille",
+      "prix_vente": 22,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 14.0
+        },
+        {
+          "ingredient": "Sirop (ml)",
+          "quantity": 10.0
+        }
+      ]
+    },
+    {
+      "article": "Americano Chocolat",
+      "prix_vente": 26,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 14.0
+        }
+      ]
+    },
+    {
+      "article": "Americano Chocolat B",
+      "prix_vente": 26,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 14.0
+        },
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 30.0
+        }
+      ]
+    },
+    {
+      "article": "Americano Pistachio",
+      "prix_vente": 26,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 14.0
+        }
+      ]
+    },
+    {
+      "article": "CAPPUCCINO",
+      "prix_vente": 26,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 14.0
+        },
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 15.0
+        }
+      ]
+    },
+    {
+      "article": "THE A LA MENTHE",
+      "prix_vente": 14,
+      "recipe": [
+        {
+          "ingredient": "thé / verveine",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "THE CHAMALI",
+      "prix_vente": 16,
+      "recipe": [
+        {
+          "ingredient": "thé / verveine",
+          "quantity": 15.0
+        }
+      ]
+    },
+    {
+      "article": "VERVEINE",
+      "prix_vente": 18,
+      "recipe": [
+        {
+          "ingredient": "thé / verveine",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "VERVEINE U LAIT",
+      "prix_vente": 22,
+      "recipe": [
+        {
+          "ingredient": "thé / verveine",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Double Espresso Standard",
+      "prix_vente": 26,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 14.0
+        }
+      ]
+    },
+    {
+      "article": "Double Espresso Vanille",
+      "prix_vente": "-",
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 14.0
+        }
+      ]
+    },
+    {
+      "article": "Double Espresso Chocolat",
+      "prix_vente": "-",
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 14.0
+        }
+      ]
+    },
+    {
+      "article": "Double Espresso Chocolat Bi",
+      "prix_vente": "-",
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 14.0
+        },
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 30.0
+        }
+      ]
+    },
+    {
+      "article": "Double Espresso Pistachio",
+      "prix_vente": "-",
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 14.0
+        }
+      ]
+    },
+    {
+      "article": "Double Espresso Pistachio C",
+      "prix_vente": "-",
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 14.0
+        },
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 30.0
+        }
+      ]
+    },
+    {
+      "article": "chocolat chaud",
+      "prix_vente": 29,
+      "recipe": [
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 30.0
+        }
+      ]
+    },
+    {
+      "article": "Cioco Delice",
+      "prix_vente": 28,
+      "recipe": [
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Ciocco Delice Con Panna",
+      "prix_vente": 34,
+      "recipe": [
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Café Mocha",
+      "prix_vente": 38,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 9.0
+        },
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 5.0
+        }
+      ]
+    },
+    {
+      "article": "Tokyo Latte Caramel",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 9.0
+        },
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 15.0
+        }
+      ]
+    },
+    {
+      "article": "Américain Latte Vanille",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "grain café (g)",
+          "quantity": 9.0
+        },
+        {
+          "ingredient": "Lait (cl)",
+          "quantity": 15.0
+        }
+      ]
+    }
+  ],
+  "PDJ": [
+    {
+      "article": "Pdj",
+      "prix_vente": "L’Express",
+      "recipe": [
+        {
+          "ingredient": "Prix vente",
+          "quantity": 24.0
+        },
+        {
+          "ingredient": "prix",
+          "quantity": 4.25
+        },
+        {
+          "ingredient": "prix",
+          "quantity": 2.125
+        }
+      ]
+    },
+    {
+      "article": "à la carte",
+      "prix_vente": "Viensoiserie 14",
+      "recipe": [
+        {
+          "ingredient": "Prix vente",
+          "quantity": 14.0
+        },
+        {
+          "ingredient": "prix",
+          "quantity": 4.25
+        }
+      ]
+    }
+  ],
+  "Crepes": [
+    {
+      "article": "Crêpe Nutella",
+      "prix_vente": 38,
+      "recipe": [
+        {
+          "ingredient": "Œufs",
+          "quantity": 3.0
+        },
+        {
+          "ingredient": "Farine",
+          "quantity": 250.0
+        },
+        {
+          "ingredient": "Sucre vanille",
+          "quantity": 2.0
+        },
+        {
+          "ingredient": "Beurre",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Nutella",
+          "quantity": 50.0
+        }
+      ]
+    },
+    {
+      "article": "Crêpe 100% Pistache",
+      "prix_vente": 44,
+      "recipe": [
+        {
+          "ingredient": "Œufs",
+          "quantity": 3.0
+        },
+        {
+          "ingredient": "Farine",
+          "quantity": 250.0
+        },
+        {
+          "ingredient": "Sucre vanille",
+          "quantity": 2.0
+        },
+        {
+          "ingredient": "Beurre",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Pistache",
+          "quantity": 50.0
+        }
+      ]
+    },
+    {
+      "article": "Crêpe Choco Pistachio",
+      "prix_vente": 42,
+      "recipe": [
+        {
+          "ingredient": "Œufs",
+          "quantity": 3.0
+        },
+        {
+          "ingredient": "Farine",
+          "quantity": 250.0
+        },
+        {
+          "ingredient": "Sucre vanille",
+          "quantity": 2.0
+        },
+        {
+          "ingredient": "Beurre",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Nutella",
+          "quantity": 25.0
+        },
+        {
+          "ingredient": "Pistache",
+          "quantity": 25.0
+        }
+      ]
+    },
+    {
+      "article": "Crêpe Biscoff Lotus",
+      "prix_vente": 44,
+      "recipe": [
+        {
+          "ingredient": "Œufs",
+          "quantity": 3.0
+        },
+        {
+          "ingredient": "Farine",
+          "quantity": 250.0
+        },
+        {
+          "ingredient": "Sucre vanille",
+          "quantity": 2.0
+        },
+        {
+          "ingredient": "Beurre",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Lotus",
+          "quantity": 50.0
+        }
+      ]
+    },
+    {
+      "article": "Crêpe Chocolat Glacé",
+      "prix_vente": 44,
+      "recipe": [
+        {
+          "ingredient": "Œufs",
+          "quantity": 3.0
+        },
+        {
+          "ingredient": "Farine",
+          "quantity": 250.0
+        },
+        {
+          "ingredient": "Sucre vanille",
+          "quantity": 2.0
+        },
+        {
+          "ingredient": "Beurre",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Nutella",
+          "quantity": 50.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 60.0
+        }
+      ]
+    },
+    {
+      "article": "CHOCOLATE MUFFIN",
+      "prix_vente": 28,
+      "recipe": [
+        {
+          "ingredient": "f/ss",
+          "quantity": 1.0
+        }
+      ]
+    },
+    {
+      "article": "FONDANT CHOCOLAT",
+      "prix_vente": 49,
+      "recipe": [
+        {
+          "ingredient": "f/ss",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 60.0
+        }
+      ]
+    },
+    {
+      "article": "FONDANT LE COMPTOIR",
+      "prix_vente": 59,
+      "recipe": [
+        {
+          "ingredient": "f/ss",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Pistache",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 60.0
+        }
+      ]
+    },
+    {
+      "article": "AMERICAN LAYER CAKE",
+      "prix_vente": 49,
+      "recipe": [
+        {
+          "ingredient": "f/ss",
+          "quantity": 1.0
+        }
+      ]
+    },
+    {
+      "article": "CHOCO BROWNIE",
+      "prix_vente": 38,
+      "recipe": [
+        {
+          "ingredient": "f/ss",
+          "quantity": 1.0
+        }
+      ]
+    },
+    {
+      "article": "TARTE DU JOUR",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "f/ss",
+          "quantity": 1.0
+        }
+      ]
+    },
+    {
+      "article": "chocolat glacé",
+      "prix_vente": 38,
+      "recipe": [
+        {
+          "ingredient": "f/ss",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 60.0
+        }
+      ]
+    },
+    {
+      "article": "trio de glace",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "Glace",
+          "quantity": 180.0
+        }
+      ]
+    },
+    {
+      "article": "Croiffle Nutella (39)",
+      "prix_vente": 39,
+      "recipe": [
+        {
+          "ingredient": "Croissant",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Nutella",
+          "quantity": 50.0
+        }
+      ]
+    },
+    {
+      "article": "Croiffle Pistachio Lovers (44)",
+      "prix_vente": 44,
+      "recipe": [
+        {
+          "ingredient": "Croissant",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Pistache",
+          "quantity": 50.0
+        }
+      ]
+    },
+    {
+      "article": "Croiffle Choco/Pistache (42)",
+      "prix_vente": 42,
+      "recipe": [
+        {
+          "ingredient": "Croissant",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Nutella",
+          "quantity": 25.0
+        },
+        {
+          "ingredient": "Pistache",
+          "quantity": 25.0
+        }
+      ]
+    },
+    {
+      "article": "Croiffle Bicof Lotus (44)",
+      "prix_vente": 44,
+      "recipe": [
+        {
+          "ingredient": "Croissant",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Lotus",
+          "quantity": 50.0
+        }
+      ]
+    },
+    {
+      "article": "Croiffle Le Comptoir (49)",
+      "prix_vente": 49,
+      "recipe": [
+        {
+          "ingredient": "Croissant",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Nutella",
+          "quantity": 25.0
+        },
+        {
+          "ingredient": "Pistache",
+          "quantity": 25.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 120.0
+        }
+      ]
+    }
+  ],
+  "sandwich": [
+    {
+      "article": "SANDWICH THON MAYO",
+      "prix_vente": 34,
+      "recipe": [
+        {
+          "ingredient": "Sandwich",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "thon",
+          "quantity": 40.0
+        }
+      ]
+    },
+    {
+      "article": "SANDWICH DINDE FUMEE",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "Sandwich",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "dinde fumé (u)",
+          "quantity": 3.0
+        }
+      ]
+    },
+    {
+      "article": "SANDWICH LE TANGEROI",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Sandwich",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "oeuf (u)",
+          "quantity": 2.0
+        }
+      ]
+    },
+    {
+      "article": "SANDWICH LE CASABLAN",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "Sandwich",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "oeuf (u)",
+          "quantity": 2.0
+        },
+        {
+          "ingredient": "tomate (g)",
+          "quantity": 40.0
+        }
+      ]
+    },
+    {
+      "article": "CROISSANDWICH THON M",
+      "prix_vente": 34,
+      "recipe": [
+        {
+          "ingredient": "Croissant",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "thon",
+          "quantity": 40.0
+        }
+      ]
+    },
+    {
+      "article": "CROISSANDWICH DINDE",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Croissant",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "dinde fumé (u)",
+          "quantity": 3.0
+        }
+      ]
+    },
+    {
+      "article": "CROISSANT GLACE BISC/nut",
+      "prix_vente": 44,
+      "recipe": [
+        {
+          "ingredient": "Croissant",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Nutella",
+          "quantity": 50.0
+        },
+        {
+          "ingredient": "Lotus",
+          "quantity": 50.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 60.0
+        }
+      ]
+    },
+    {
+      "article": "CROISSANT GLACE PIST / nute",
+      "prix_vente": 46,
+      "recipe": [
+        {
+          "ingredient": "Croissant",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Nutella",
+          "quantity": 50.0
+        },
+        {
+          "ingredient": "Pistache",
+          "quantity": 50.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 60.0
+        }
+      ]
+    },
+    {
+      "article": "CROISSANT GLACE NUTE",
+      "prix_vente": 46,
+      "recipe": [
+        {
+          "ingredient": "Croissant",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Pistache",
+          "quantity": 50.0
+        },
+        {
+          "ingredient": "Lotus",
+          "quantity": 50.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 60.0
+        }
+      ]
+    }
+  ],
+  "Boisson fraiches": [
+    {
+      "article": "Ice Tea Pêche",
+      "prix_vente": 29,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 30.0
+        }
+      ]
+    },
+    {
+      "article": "Ice Tea Fraise",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 30.0
+        },
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Ice Tea Passion",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 30.0
+        },
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Ice Tea Myrtille",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 30.0
+        },
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Ice Tea Mangue",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 30.0
+        },
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Ice Tea Bubble Gum",
+      "prix_vente": 32,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 60.0
+        }
+      ]
+    },
+    {
+      "article": "Smoothie Banane",
+      "prix_vente": 34,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Smoothie Fraise",
+      "prix_vente": 34,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Smoothie Mangue",
+      "prix_vente": 34,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Smoothie Myrtille",
+      "prix_vente": 34,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Smoothie Passion",
+      "prix_vente": 34,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Smoothie Ananas",
+      "prix_vente": 34,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Frappuccino Vanille",
+      "prix_vente": 42,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 15.0
+        },
+        {
+          "ingredient": "Café",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 3.0
+        }
+      ]
+    },
+    {
+      "article": "Frappuccino Chocolat",
+      "prix_vente": 42,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 15.0
+        },
+        {
+          "ingredient": "Café",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 3.0
+        }
+      ]
+    },
+    {
+      "article": "Frappuccino Fraise",
+      "prix_vente": 42,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 15.0
+        },
+        {
+          "ingredient": "Café",
+          "quantity": 1.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 3.0
+        }
+      ]
+    },
+    {
+      "article": "strawberry matcha latte",
+      "prix_vente": 39,
+      "recipe": [
+        {
+          "ingredient": "matcha (g)",
+          "quantity": 10.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        }
+      ]
+    },
+    {
+      "article": "Frappuccino MATCHA",
+      "prix_vente": 38,
+      "recipe": [
+        {
+          "ingredient": "matcha (g)",
+          "quantity": 10.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 15.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 3.0
+        }
+      ]
+    },
+    {
+      "article": "Milkshake Vanille",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 30.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 5.0
+        }
+      ]
+    },
+    {
+      "article": "Milkshake Chocolat",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 30.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 5.0
+        }
+      ]
+    },
+    {
+      "article": "Milkshake Fraise",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Lait",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Glace",
+          "quantity": 5.0
+        }
+      ]
+    },
+    {
+      "article": "soda",
+      "prix_vente": 18,
+      "recipe": [
+        {
+          "ingredient": "Soda",
+          "quantity": 1.0
+        }
+      ]
+    },
+    {
+      "article": "oulmes",
+      "prix_vente": 16,
+      "recipe": [
+        {
+          "ingredient": "Soda",
+          "quantity": 1.0
+        }
+      ]
+    },
+    {
+      "article": "Gum Gum",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 30.0
+        },
+        {
+          "ingredient": "Soda",
+          "quantity": 25.0
+        }
+      ]
+    },
+    {
+      "article": "Blue Lagoon",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 30.0
+        },
+        {
+          "ingredient": "Soda",
+          "quantity": 25.0
+        }
+      ]
+    },
+    {
+      "article": "Pink Paradise",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Soda",
+          "quantity": 25.0
+        }
+      ]
+    },
+    {
+      "article": "Mojito",
+      "prix_vente": 38,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Soda",
+          "quantity": 25.0
+        }
+      ]
+    },
+    {
+      "article": "Green Goblin",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 40.0
+        },
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Soda",
+          "quantity": 25.0
+        }
+      ]
+    },
+    {
+      "article": "Piña Colada",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Sirop",
+          "quantity": 30.0
+        },
+        {
+          "ingredient": "Soda",
+          "quantity": 25.0
+        }
+      ]
+    },
+    {
+      "article": "Dragon Ice",
+      "prix_vente": 36,
+      "recipe": [
+        {
+          "ingredient": "Purée fruits",
+          "quantity": 20.0
+        },
+        {
+          "ingredient": "Soda",
+          "quantity": 25.0
+        }
+      ]
+    }
+  ]
+}

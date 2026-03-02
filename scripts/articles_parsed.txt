@@ -1,0 +1,78 @@
+INGREDIENTS (unique from all sheets):
+  - Ananas (g)
+  - Avocat (g)
+  - Beurre
+  - Café
+  - Citron cl
+  - Croissant
+  - Farine
+  - Fraise (g)
+  - Fruits secs
+  - Gingembre
+  - Glace
+  - Lait
+  - Lait (cl)
+  - Lotus
+  - Mangue (g)
+  - Nutella
+  - Orange cl
+  - Pistache
+  - Prix vente
+  - Purée fruits
+  - Sandwich
+  - Sirop
+  - Sirop (ml)
+  - Soda
+  - Sucre vanille
+  - capsule
+  - dinde fumé (u)
+  - f/ss
+  - grain café (g)
+  - matcha (g)
+  - oeuf (u)
+  - prix
+  - thon
+  - thé / verveine
+  - tomate (g)
+  - Œufs
+
+
+ARTICLE COUNT PER SHEET:
+  Jus: 9 articles
+  Boisson chaude: 30 articles
+  PDJ: 2 articles
+  Crepes: 18 articles
+  sandwich: 9 articles
+  Boisson fraiches: 29 articles
+
+
+SAMPLE RECIPES (first 3 per sheet):
+
+--- Jus ---
+  Orange Juice (Freshly Squeezed): [{'ingredient': 'Orange cl', 'quantity': 25.0}]
+  American Lemonade (Citronnade maison): [{'ingredient': 'Citron cl', 'quantity': 25.0}]
+  Fraise – Lait: [{'ingredient': 'Fraise (g)', 'quantity': 50.0}, {'ingredient': 'Lait', 'quantity': 20.0}]
+
+--- Boisson chaude ---
+  Espresso Standard: [{'ingredient': 'grain café (g)', 'quantity': 9.0}]
+  Espresso Vanille: [{'ingredient': 'grain café (g)', 'quantity': 9.0}]
+  Espresso Chocolat: [{'ingredient': 'grain café (g)', 'quantity': 9.0}]
+
+--- PDJ ---
+  Pdj: [{'ingredient': 'Prix vente', 'quantity': 24.0}, {'ingredient': 'prix', 'quantity': 4.25}, {'ingredient': 'prix', 'quantity': 2.125}]
+  à la carte: [{'ingredient': 'Prix vente', 'quantity': 14.0}, {'ingredient': 'prix', 'quantity': 4.25}]
+
+--- Crepes ---
+  Crêpe Nutella: [{'ingredient': 'Œufs', 'quantity': 3.0}, {'ingredient': 'Farine', 'quantity': 250.0}, {'ingredient': 'Sucre vanille', 'quantity': 2.0}, {'ingredient': 'Beurre', 'quantity': 20.0}, {'ingredient': 'Nutella', 'quantity': 50.0}]
+  Crêpe 100% Pistache: [{'ingredient': 'Œufs', 'quantity': 3.0}, {'ingredient': 'Farine', 'quantity': 250.0}, {'ingredient': 'Sucre vanille', 'quantity': 2.0}, {'ingredient': 'Beurre', 'quantity': 20.0}, {'ingredient': 'Pistache', 'quantity': 50.0}]
+  Crêpe Choco Pistachio: [{'ingredient': 'Œufs', 'quantity': 3.0}, {'ingredient': 'Farine', 'quantity': 250.0}, {'ingredient': 'Sucre vanille', 'quantity': 2.0}, {'ingredient': 'Beurre', 'quantity': 20.0}, {'ingredient': 'Nutella', 'quantity': 25.0}, {'ingredient': 'Pistache', 'quantity': 25.0}]
+
+--- sandwich ---
+  SANDWICH THON MAYO: [{'ingredient': 'Sandwich', 'quantity': 1.0}, {'ingredient': 'thon', 'quantity': 40.0}]
+  SANDWICH DINDE FUMEE: [{'ingredient': 'Sandwich', 'quantity': 1.0}, {'ingredient': 'dinde fumé (u)', 'quantity': 3.0}]
+  SANDWICH LE TANGEROI: [{'ingredient': 'Sandwich', 'quantity': 1.0}, {'ingredient': 'oeuf (u)', 'quantity': 2.0}]
+
+--- Boisson fraiches ---
+  Ice Tea Pêche: [{'ingredient': 'Sirop', 'quantity': 30.0}]
+  Ice Tea Fraise: [{'ingredient': 'Sirop', 'quantity': 30.0}, {'ingredient': 'Purée fruits', 'quantity': 20.0}]
+  Ice Tea Passion: [{'ingredient': 'Sirop', 'quantity': 30.0}, {'ingredient': 'Purée fruits', 'quantity': 20.0}]

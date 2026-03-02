@@ -1,0 +1,221 @@
+================================================================================
+ARTICLES & RECIPES ANALYSIS - Fich pour storeyes.xlsx
+================================================================================
+
+
+------------------------------------------------------------
+SHEET: Jus | Shape: (10, 21)
+------------------------------------------------------------
+Headers (row 0): ['Article', 'Prix vente', 'Orange cl', 'prix', 'Citron cl', 'prix', 'Fraise (g)', 'prix', 'Avocat (g)', 'prix', 'Mangue (g)', 'prix']...
+
+Recipe ingredients (from headers):
+  - Orange cl -> unit: cl
+  - Citron cl -> unit: cl
+  - Fraise (g) -> unit: g
+  - Avocat (g) -> unit: g
+  - Mangue (g) -> unit: g
+  - Ananas (g) -> unit: g
+  - Gingembre -> unit: g
+  - Fruits secs -> unit: unit
+  - Lait -> unit: unit
+
+Articles (9): ['Orange Juice (Freshly Squeezed)', 'American Lemonade (Citronnade maison)', 'Fraise – Lait', 'Fraise', 'Avocat', 'Royal Avocat Fruits Secs', 'Mangue', 'Ananas']...
+
+
+------------------------------------------------------------
+SHEET: Boisson chaude | Shape: (31, 17)
+------------------------------------------------------------
+Headers (row 0): ['Boisson', 'Prix vente', 'grain café (g)', 'prix', 'thé / verveine', 'prix', 'Chocolat carraro (g)', 'prix', 'Sirop (ml)', 'prix vanille', 'Prix chocolat', 'Prix pistache']...
+
+Recipe ingredients (from headers):
+  - grain café (g) -> unit: g
+  - thé / verveine -> unit: unit
+  - Chocolat carraro (g) -> unit: g
+  - Sirop (ml) -> unit: ml
+  - Prix chocolat -> unit: unit
+  - capsule -> unit: piece
+  - Lait (cl) -> unit: cl
+
+Articles (30): ['Espresso Standard', 'Espresso Vanille', 'Espresso Chocolat', 'Espresso Chocolat Bi', 'Espresso Pistachio', 'Espresso Pistachio C', 'MOITIE MOITIE MAROCA', 'nespresso']...
+
+
+------------------------------------------------------------
+SHEET: PDJ | Shape: (13, 25)
+------------------------------------------------------------
+Headers (row 0): ['Article', 'Prix vente', 'Pain', 'prix', 'Crêpe', 'prix', 'Croissant', 'prix', 'Œufs', 'prix', 'Khlie (g)', 'prix']...
+
+Recipe ingredients (from headers):
+  - Prix vente -> unit: unit
+  - prix -> unit: unit
+  - prix -> unit: unit
+  - prix -> unit: unit
+  - prix -> unit: unit
+  - prix -> unit: unit
+  - prix -> unit: unit
+  - prix -> unit: unit
+  - prix -> unit: unit
+  - prix -> unit: unit
+  - prix -> unit: unit
+
+Articles (2): ['Pdj', 'à la carte']...
+
+
+------------------------------------------------------------
+SHEET: Crepes | Shape: (19, 25)
+------------------------------------------------------------
+Headers (row 0): ['Article', 'Prix de vente', 'f/ss', 'prix', 'Œufs', 'prix', 'Farine', 'prix', 'Lait', 'prix', 'Sucre vanille', 'prix']...
+
+Recipe ingredients (from headers):
+  - f/ss -> unit: unit
+  - Œufs -> unit: unit
+  - Farine -> unit: unit
+  - Lait -> unit: unit
+  - Sucre vanille -> unit: unit
+  - Beurre -> unit: unit
+  - Croissant -> unit: unit
+  - Nutella -> unit: unit
+  - Pistache -> unit: unit
+  - Lotus -> unit: unit
+  - Glace -> unit: g
+
+Articles (18): ['Crêpe Nutella', 'Crêpe 100% Pistache', 'Crêpe Choco Pistachio', 'Crêpe Biscoff Lotus', 'Crêpe Chocolat Glacé', 'CHOCOLATE MUFFIN', 'FONDANT CHOCOLAT', 'FONDANT LE COMPTOIR']...
+
+
+------------------------------------------------------------
+SHEET: sandwich | Shape: (10, 23)
+------------------------------------------------------------
+Headers (row 0): ['Article', 'Prix de vente', 'Sandwich', 'prix', 'Croissant', 'prix', 'thon', 'prix', 'dinde fumé (u)', 'prix', 'oeuf (u)', 'prix']...
+
+Recipe ingredients (from headers):
+  - Sandwich -> unit: unit
+  - Croissant -> unit: unit
+  - thon -> unit: unit
+  - dinde fumé (u) -> unit: u
+  - oeuf (u) -> unit: u
+  - tomate (g) -> unit: g
+  - Nutella -> unit: unit
+  - Pistache -> unit: unit
+  - Lotus -> unit: unit
+  - Glace -> unit: g
+
+Articles (9): ['SANDWICH THON MAYO', 'SANDWICH DINDE FUMEE', 'SANDWICH LE TANGEROI', 'SANDWICH LE CASABLAN', 'CROISSANDWICH THON M', 'CROISSANDWICH DINDE', 'CROISSANT GLACE BISC/nut', 'CROISSANT GLACE PIST / nute']...
+
+
+------------------------------------------------------------
+SHEET: Boisson fraiches | Shape: (30, 19)
+------------------------------------------------------------
+Headers (row 0): ['Article', 'Prix', 'Sirop', 'prix', 'Fruits', 'prix', 'Purée fruits', 'prix', 'matcha (g)', 'prix', 'Lait', 'prix']...
+
+Recipe ingredients (from headers):
+  - Sirop -> unit: unit
+  - Fruits -> unit: unit
+  - Purée fruits -> unit: unit
+  - matcha (g) -> unit: g
+  - Lait -> unit: unit
+  - Café -> unit: unit
+  - Glace -> unit: g
+  - Soda -> unit: unit
+
+Articles (29): ['Ice Tea Pêche', 'Ice Tea Fraise', 'Ice Tea Passion', 'Ice Tea Myrtille', 'Ice Tea Mangue', 'Ice Tea Bubble Gum', 'Smoothie Banane', 'Smoothie Fraise']...
+
+
+================================================================================
+INGREDIENT -> UNIT mapping (from recipe headers)
+================================================================================
+  Ananas (g) -> g
+  Avocat (g) -> g
+  Beurre -> unit
+  Café -> unit
+  Chocolat carraro (g) -> g
+  Citron cl -> cl
+  Croissant -> unit
+  Farine -> unit
+  Fraise (g) -> g
+  Fruits -> unit
+  Fruits secs -> unit
+  Gingembre -> g
+  Glace -> g
+  Lait -> unit
+  Lait (cl) -> cl
+  Lotus -> unit
+  Mangue (g) -> g
+  Nutella -> unit
+  Orange cl -> cl
+  Pistache -> unit
+  Prix chocolat -> unit
+  Prix vente -> unit
+  Purée fruits -> unit
+  Sandwich -> unit
+  Sirop -> unit
+  Sirop (ml) -> ml
+  Soda -> unit
+  Sucre vanille -> unit
+  capsule -> piece
+  dinde fumé (u) -> u
+  f/ss -> unit
+  grain café (g) -> g
+  matcha (g) -> g
+  oeuf (u) -> u
+  prix -> unit
+  thon -> unit
+  thé / verveine -> unit
+  tomate (g) -> g
+  Œufs -> unit
+
+================================================================================
+FULL INGREDIENT LIST (all sheets)
+================================================================================
+  Ananas (g) | unit: g
+  Avocat (g) | unit: g
+  Beurre | unit: unit
+  Café | unit: unit
+  Chocolat carraro (g) | unit: g
+  Citron cl | unit: cl
+  Croissant | unit: unit
+  Farine | unit: unit
+  Fraise (g) | unit: g
+  Fruits | unit: unit
+  Fruits secs | unit: unit
+  Gingembre | unit: g
+  Glace | unit: g
+  Lait | unit: unit
+  Lait (cl) | unit: cl
+  Lotus | unit: unit
+  Mangue (g) | unit: g
+  Nutella | unit: unit
+  Orange cl | unit: cl
+  Pistache | unit: unit
+  Prix chocolat | unit: unit
+  Prix vente | unit: unit
+  Purée fruits | unit: unit
+  Sandwich | unit: unit
+  Sirop | unit: unit
+  Sirop (ml) | unit: ml
+  Soda | unit: unit
+  Sucre vanille | unit: unit
+  capsule | unit: piece
+  dinde fumé (u) | unit: u
+  f/ss | unit: unit
+  grain café (g) | unit: g
+  matcha (g) | unit: g
+  oeuf (u) | unit: u
+  prix | unit: unit
+  thon | unit: unit
+  thé / verveine | unit: unit
+  tomate (g) | unit: g
+  Œufs | unit: unit
+
+================================================================================
+STOCK_PRODUCTS UNIT FIXES NEEDED
+Recipe uses (cl, g, ml, piece) - stock_products must align for auto stock calc
+================================================================================
+  lait: -> cl | Recipe: Lait (cl)
+  Café / grain café: -> g | Recipe: grain café (g)
+  Chocolat carraro: -> g | Recipe: Chocolat carraro (g)
+  Sirop Vanille, Chocolat, Pistache: -> ml | Recipe: Sirop (ml)
+  sauce pistache: -> ml | Recipe: Pistache (ml)
+  Sodas (Hawai ananas, Sprit menth, Poms, oulmes): -> cl | Bottles 33cl - use cl
+  eau sidi ali 0,5l: -> L | 0.5L bottle -> L or cl(50)
+  Purée de fraise, etc.: -> unit | OK - sold per pot
+  glace vanille, etc.: -> unit | OK - per tub
+  Fruits (fraise, mangue, ananas) freezer: -> g | Recipe uses (g) - currently unit

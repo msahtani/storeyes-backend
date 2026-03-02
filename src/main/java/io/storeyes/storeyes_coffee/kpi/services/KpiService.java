@@ -81,15 +81,24 @@ public class KpiService {
                 .espece(espece)
                 .build();
         
-        // Build hourly data DTOs
-        List<HourlyDataDTO> hourlyData = hourlyKpis.stream()
-                .map(h -> HourlyDataDTO.builder()
-                        .hour(formatHour(h.getHour()))
-                        .revenue(h.getRevenue())
-                        .transactions(h.getTransactions())
-                        .itemsSold(h.getQuantity())
-                        .build())
-                .collect(Collectors.toList());
+        // Build hourly data DTOs for all 24 hours (00:00 - 23:00)
+        Map<Integer, FactKpiHourly> hourlyMap = hourlyKpis.stream()
+                .collect(Collectors.toMap(FactKpiHourly::getHour, h -> h));
+
+        List<HourlyDataDTO> hourlyData = new ArrayList<>();
+        for (int hour = 0; hour < 24; hour++) {
+            FactKpiHourly h = hourlyMap.get(hour);
+            Double revenueHour = (h != null && h.getRevenue() != null) ? h.getRevenue() : 0.0;
+            Integer transactionsHour = (h != null && h.getTransactions() != null) ? h.getTransactions() : 0;
+            Integer itemsSoldHour = (h != null && h.getQuantity() != null) ? h.getQuantity() : 0;
+
+            hourlyData.add(HourlyDataDTO.builder()
+                    .hour(formatHour(hour))
+                    .revenue(revenueHour)
+                    .transactions(transactionsHour)
+                    .itemsSold(itemsSoldHour)
+                    .build());
+        }
         
         // Build top products by quantity
         List<TopProductDTO> topProductsByQuantity = new ArrayList<>();
