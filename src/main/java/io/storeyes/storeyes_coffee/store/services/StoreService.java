@@ -66,6 +66,12 @@ public class StoreService {
                 .orElseThrow(() -> new RuntimeException("Store not found with id: " + id));
         return storeMapper.toDTO(store);
     }
+
+    /** Get store entity by ID (for internal use). */
+    public Store getStoreEntityById(Long id) {
+        return storeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Store not found with id: " + id));
+    }
     
     /**
      * Get store by owner ID (Keycloak user ID)

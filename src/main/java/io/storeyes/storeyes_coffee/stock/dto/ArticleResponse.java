@@ -12,16 +12,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class StockProductResponse {
+public class ArticleResponse {
     private Long id;
     private String name;
-    private String unit;
-    private BigDecimal unitPrice;
-    private BigDecimal minimalThreshold;
-    private Long subCategoryId;
-    private String subCategoryName;
-    private String countingUnit;
-    private BigDecimal basePerCountingUnit;
+    private BigDecimal salePrice;
+    private String category;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

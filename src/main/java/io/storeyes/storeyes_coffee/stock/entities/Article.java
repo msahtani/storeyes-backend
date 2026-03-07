@@ -1,6 +1,5 @@
 package io.storeyes.storeyes_coffee.stock.entities;
 
-import io.storeyes.storeyes_coffee.charges.entities.VariableChargeSubCategory;
 import io.storeyes.storeyes_coffee.store.entities.Store;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -19,14 +18,13 @@ import java.time.LocalDateTime;
 @Builder
 @Entity
 @Table(
-    name = "stock_products",
+    name = "articles",
     indexes = {
-        @Index(name = "idx_stock_products_store_id", columnList = "store_id"),
-        @Index(name = "idx_stock_products_sub_category_id", columnList = "sub_category_id"),
-        @Index(name = "idx_stock_products_store_name", columnList = "store_id,name")
+        @Index(name = "idx_articles_store_id", columnList = "store_id"),
+        @Index(name = "idx_articles_store_name", columnList = "store_id,name")
     }
 )
-public class StockProduct {
+public class Article {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,27 +34,14 @@ public class StockProduct {
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sub_category_id", nullable = false)
-    private VariableChargeSubCategory subCategory;
-
     @Column(name = "name", nullable = false, length = 255)
     private String name;
 
-    @Column(name = "unit", nullable = false, length = 50)
-    private String unit;
+    @Column(name = "sale_price", nullable = false, precision = 12, scale = 2)
+    private BigDecimal salePrice;
 
-    @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
-    private BigDecimal unitPrice;
-
-    @Column(name = "minimal_threshold", nullable = false, precision = 12, scale = 2)
-    private BigDecimal minimalThreshold = BigDecimal.ZERO;
-
-    @Column(name = "counting_unit", length = 50)
-    private String countingUnit;
-
-    @Column(name = "base_per_counting_unit", precision = 12, scale = 4)
-    private BigDecimal basePerCountingUnit;
+    @Column(name = "category", length = 100)
+    private String category;
 
     @Column(name = "created_at", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)

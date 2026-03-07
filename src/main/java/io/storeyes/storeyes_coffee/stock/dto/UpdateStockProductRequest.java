@@ -28,4 +28,10 @@ public class UpdateStockProductRequest {
 
     @DecimalMin(value = "0", inclusive = true, message = "Minimal threshold must be 0 or positive")
     private BigDecimal minimalThreshold;
+
+    @Size(max = 50, message = "Counting unit must not exceed 50 characters")
+    private String countingUnit;
+
+    @DecimalMin(value = "0", inclusive = false, message = "Base per counting unit must be positive when set")
+    private BigDecimal basePerCountingUnit;
 }

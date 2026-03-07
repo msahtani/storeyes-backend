@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,4 +35,8 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
         GROUP BY sm.product_id
         """, nativeQuery = true)
     List<Object[]> getInventorySummaryByStore(@Param("storeId") Long storeId);
+
+    /** Sum of movement quantities for a product after a given date (for real stock = snapshot + movements after). */
+    @Query("SELECT COALESCE(SUM(m.quantity), 0) FROM StockMovement m WHERE m.store.id = :storeId AND m.product.id = :productId AND m.movementDate > :afterDate")
+    BigDecimal sumQuantityAfterDate(@Param("storeId") Long storeId, @Param("productId") Long productId, @Param("afterDate") java.time.LocalDate afterDate);
 }

@@ -1,12 +1,14 @@
 package io.storeyes.storeyes_coffee.stock.controllers;
 
+import io.storeyes.storeyes_coffee.stock.dto.SetStockRequest;
+import io.storeyes.storeyes_coffee.stock.dto.ValidateInventoryRequest;
 import io.storeyes.storeyes_coffee.stock.dto.StockInventoryItemResponse;
 import io.storeyes.storeyes_coffee.stock.services.StockMovementService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -20,7 +22,8 @@ public class StockInventoryController {
     private final StockMovementService stockMovementService;
 
     /**
-     * Inventory summary: products with current quantity and total value (based on purchase amounts).
+     * Inventory summary: all store products with current quantity and total value (based on movements).
+     * Products with no movements have estimatedQuantity=0.
      * GET /api/stock/inventory
      */
     @GetMapping
@@ -31,5 +34,34 @@ public class StockInventoryController {
         response.put("message", "Inventory summary retrieved successfully");
         response.put("timestamp", java.time.OffsetDateTime.now());
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Set current stock for a product (creates an ADJUSTMENT movement so total quantity = quantityInBaseUnit).
+     * Use for opening stock or manual correction. Quantity must be in the product's base unit (e.g. g, cl, piece).
+     * POST /api/stock/inventory/set
+     * Body: { "productId": 7, "quantityInBaseUnit": 2000 }
+     */
+    @PostMapping("/set")
+    public ResponseEntity<Map<String, Object>> setStock(@Valid @RequestBody SetStockRequest request) {
+        stockMovementService.setStockQuantity(request);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Stock quantity set successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    /**
+     * Batch validate inventory: create session, snapshots, ADJUSTMENT movements.
+     * Use when owner accepts physical counts as new baseline (Accept and validate).
+     * POST /api/stock/inventory/validate
+     */
+    @PostMapping("/validate")
+    public ResponseEntity<Map<String, Object>> validateInventory(@Valid @RequestBody ValidateInventoryRequest request) {
+        stockMovementService.validateInventory(request);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Inventory validated successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

@@ -93,6 +93,8 @@ public class StockProductService {
                 .unit(request.getUnit().trim())
                 .unitPrice(request.getUnitPrice())
                 .minimalThreshold(threshold)
+                .countingUnit(request.getCountingUnit() != null ? request.getCountingUnit().trim() : null)
+                .basePerCountingUnit(request.getBasePerCountingUnit())
                 .build();
 
         StockProduct saved = stockProductRepository.save(product);
@@ -131,6 +133,12 @@ public class StockProductService {
         if (request.getMinimalThreshold() != null) {
             product.setMinimalThreshold(request.getMinimalThreshold());
         }
+        if (request.getCountingUnit() != null) {
+            product.setCountingUnit(request.getCountingUnit().trim().isEmpty() ? null : request.getCountingUnit().trim());
+        }
+        if (request.getBasePerCountingUnit() != null) {
+            product.setBasePerCountingUnit(request.getBasePerCountingUnit());
+        }
 
         StockProduct updated = stockProductRepository.save(product);
         return toResponse(updated);
@@ -159,6 +167,8 @@ public class StockProductService {
                 .minimalThreshold(product.getMinimalThreshold())
                 .subCategoryId(product.getSubCategory().getId())
                 .subCategoryName(product.getSubCategory().getName())
+                .countingUnit(product.getCountingUnit())
+                .basePerCountingUnit(product.getBasePerCountingUnit())
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
                 .build();

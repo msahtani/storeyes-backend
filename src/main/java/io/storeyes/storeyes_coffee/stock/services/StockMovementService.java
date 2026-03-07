@@ -2,12 +2,20 @@ package io.storeyes.storeyes_coffee.stock.services;
 
 import io.storeyes.storeyes_coffee.charges.entities.VariableCharge;
 import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
+import io.storeyes.storeyes_coffee.stock.dto.SetStockRequest;
+import io.storeyes.storeyes_coffee.stock.dto.ValidateInventoryItemRequest;
+import io.storeyes.storeyes_coffee.stock.dto.ValidateInventoryRequest;
 import io.storeyes.storeyes_coffee.stock.dto.StockInventoryItemResponse;
 import io.storeyes.storeyes_coffee.stock.entities.StockMovement;
 import io.storeyes.storeyes_coffee.stock.entities.StockMovementType;
 import io.storeyes.storeyes_coffee.stock.entities.StockProduct;
+import io.storeyes.storeyes_coffee.stock.entities.StockInventorySession;
+import io.storeyes.storeyes_coffee.stock.entities.StockInventorySnapshot;
+import io.storeyes.storeyes_coffee.stock.repositories.StockInventorySessionRepository;
+import io.storeyes.storeyes_coffee.stock.repositories.StockInventorySnapshotRepository;
 import io.storeyes.storeyes_coffee.stock.repositories.StockMovementRepository;
 import io.storeyes.storeyes_coffee.stock.repositories.StockProductRepository;
+import io.storeyes.storeyes_coffee.store.entities.Store;
 import io.storeyes.storeyes_coffee.store.services.StoreService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +24,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +39,8 @@ public class StockMovementService {
 
     private final StockMovementRepository stockMovementRepository;
     private final StockProductRepository stockProductRepository;
+    private final StockInventorySessionRepository stockInventorySessionRepository;
+    private final StockInventorySnapshotRepository stockInventorySnapshotRepository;
     private final StoreService storeService;
 
     private Long getStoreId() {
@@ -96,48 +108,211 @@ public class StockMovementService {
     }
 
     /**
-     * Inventory summary: all products that have movements, with current quantity and total value.
-     * Total value is based on purchase amounts (average cost), not product.unitPrice.
+     * Inventory summary: all store products with estimated (system) and real (validated count) stock.
+     * Value is amount-based (average cost from PURCHASE movements), not product.unit_price.
      */
     public List<StockInventoryItemResponse> getInventorySummary() {
         Long storeId = getStoreId();
+        List<StockProduct> allProducts = stockProductRepository.findByStoreIdOrderByNameAsc(storeId);
         List<Object[]> rows = stockMovementRepository.getInventorySummaryByStore(storeId);
-        if (rows.isEmpty()) {
-            return List.of();
+        Map<Long, Object[]> summaryByProductId = rows.stream()
+                .collect(Collectors.toMap(r -> ((Number) r[0]).longValue(), r -> r));
+
+        List<StockInventorySnapshot> allSnapshots = stockInventorySnapshotRepository.findBySessionStoreIdOrderByCreatedAtDesc(storeId);
+        Map<Long, StockInventorySnapshot> latestSnapshotByProductId = new LinkedHashMap<>();
+        for (StockInventorySnapshot s : allSnapshots) {
+            latestSnapshotByProductId.putIfAbsent(s.getProduct().getId(), s);
         }
-        List<Long> productIds = rows.stream()
-                .map(r -> ((Number) r[0]).longValue())
-                .distinct()
-                .toList();
-        Map<Long, StockProduct> productsById = stockProductRepository.findAllById(productIds).stream()
-                .collect(Collectors.toMap(StockProduct::getId, p -> p));
 
-        return rows.stream()
-                .map(r -> {
-                    Long productId = ((Number) r[0]).longValue();
-                    BigDecimal currentQuantity = r[1] != null ? new BigDecimal(r[1].toString()) : BigDecimal.ZERO;
-                    BigDecimal totalPurchaseAmount = r[2] != null ? new BigDecimal(r[2].toString()) : BigDecimal.ZERO;
-                    BigDecimal totalPurchaseQuantity = r[3] != null ? new BigDecimal(r[3].toString()) : BigDecimal.ZERO;
-
+        return allProducts.stream()
+                .map(product -> {
+                    Object[] r = summaryByProductId.get(product.getId());
+                    BigDecimal estimatedQuantity = BigDecimal.ZERO;
+                    BigDecimal totalPurchaseAmount = BigDecimal.ZERO;
+                    BigDecimal totalPurchaseQuantity = BigDecimal.ZERO;
+                    if (r != null) {
+                        estimatedQuantity = r[1] != null ? new BigDecimal(r[1].toString()) : BigDecimal.ZERO;
+                        totalPurchaseAmount = r[2] != null ? new BigDecimal(r[2].toString()) : BigDecimal.ZERO;
+                        totalPurchaseQuantity = r[3] != null ? new BigDecimal(r[3].toString()) : BigDecimal.ZERO;
+                    }
                     BigDecimal averageUnitCost = BigDecimal.ZERO;
                     if (totalPurchaseQuantity.compareTo(BigDecimal.ZERO) > 0 && totalPurchaseAmount.compareTo(BigDecimal.ZERO) > 0) {
                         averageUnitCost = totalPurchaseAmount.divide(totalPurchaseQuantity, 4, RoundingMode.HALF_UP);
                     }
-                    BigDecimal totalValue = currentQuantity.multiply(averageUnitCost).setScale(2, RoundingMode.HALF_UP);
+                    BigDecimal estimatedValue = estimatedQuantity.multiply(averageUnitCost).setScale(2, RoundingMode.HALF_UP);
 
-                    StockProduct product = productsById.get(productId);
+                    BigDecimal basePerCounting = product.getBasePerCountingUnit();
+                    BigDecimal estimatedQuantityCounting = null;
+                    if (basePerCounting != null && basePerCounting.compareTo(BigDecimal.ZERO) > 0) {
+                        estimatedQuantityCounting = estimatedQuantity.divide(basePerCounting, 4, RoundingMode.HALF_UP);
+                    }
+
+                    BigDecimal realQuantity = null;
+                    BigDecimal realQuantityCounting = null;
+                    BigDecimal realValue = null;
+                    StockInventorySnapshot lastSnapshot = latestSnapshotByProductId.get(product.getId());
+                    if (lastSnapshot != null) {
+                        LocalDate snapshotDate = lastSnapshot.getCreatedAt().toLocalDate();
+                        BigDecimal movementsAfter = stockMovementRepository.sumQuantityAfterDate(storeId, product.getId(), snapshotDate);
+                        realQuantity = lastSnapshot.getBaseQuantity().add(movementsAfter != null ? movementsAfter : BigDecimal.ZERO);
+                        realValue = realQuantity.multiply(averageUnitCost).setScale(2, RoundingMode.HALF_UP);
+                        if (basePerCounting != null && basePerCounting.compareTo(BigDecimal.ZERO) > 0) {
+                            realQuantityCounting = realQuantity.divide(basePerCounting, 4, RoundingMode.HALF_UP);
+                        }
+                    }
+
+                    BigDecimal varianceValue = (realValue != null) ? realValue.subtract(estimatedValue) : null;
+
                     return StockInventoryItemResponse.builder()
-                            .productId(productId)
-                            .productName(product != null ? product.getName() : null)
-                            .unit(product != null ? product.getUnit() : null)
-                            .subCategoryId(product != null && product.getSubCategory() != null ? product.getSubCategory().getId() : null)
-                            .subCategoryName(product != null && product.getSubCategory() != null ? product.getSubCategory().getName() : null)
-                            .currentQuantity(currentQuantity)
+                            .productId(product.getId())
+                            .productName(product.getName())
+                            .unit(product.getUnit())
+                            .subCategoryId(product.getSubCategory() != null ? product.getSubCategory().getId() : null)
+                            .subCategoryName(product.getSubCategory() != null ? product.getSubCategory().getName() : null)
+                            .countingUnit(product.getCountingUnit())
+                            .basePerCountingUnit(basePerCounting)
+                            .minimalThreshold(product.getMinimalThreshold())
+                            .estimatedQuantity(estimatedQuantity)
+                            .estimatedQuantityCounting(estimatedQuantityCounting)
+                            .estimatedValue(estimatedValue)
+                            .realQuantity(realQuantity)
+                            .realQuantityCounting(realQuantityCounting)
+                            .realValue(realValue)
+                            .varianceValue(varianceValue)
                             .totalPurchaseAmount(totalPurchaseAmount)
                             .averageUnitCost(averageUnitCost)
-                            .totalValue(totalValue)
                             .build();
                 })
                 .toList();
+    }
+
+    /**
+     * Get current stock quantity for one product (sum of all movement quantities in base unit).
+     */
+    public BigDecimal getCurrentQuantity(Long storeId, Long productId) {
+        List<StockMovement> movements = stockMovementRepository.findByStoreIdAndProductIdOrderByMovementDateDescIdDesc(storeId, productId);
+        return movements.stream()
+                .map(StockMovement::getQuantity)
+                .filter(q -> q != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private static final String REFERENCE_TYPE_MANUAL_ADJUSTMENT = "MANUAL_ADJUSTMENT";
+
+    /**
+     * Set current stock for a product by creating an ADJUSTMENT movement.
+     * Resolves target quantity from request: quantityInBaseUnit if set, else countingQuantity * product.basePerCountingUnit.
+     */
+    @Transactional
+    public void setStockQuantity(SetStockRequest request) {
+        Long productId = request.getProductId();
+        Long storeId = getStoreId();
+        StockProduct product = stockProductRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Stock product not found with id: " + productId));
+        if (!product.getStore().getId().equals(storeId)) {
+            throw new RuntimeException("Stock product not found with id: " + productId);
+        }
+        BigDecimal targetQuantityInBaseUnit = request.getQuantityInBaseUnit();
+        if (targetQuantityInBaseUnit == null && request.getCountingQuantity() != null) {
+            if (product.getBasePerCountingUnit() == null || product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("Product has no counting unit conversion; use quantityInBaseUnit");
+            }
+            targetQuantityInBaseUnit = request.getCountingQuantity().multiply(product.getBasePerCountingUnit());
+        }
+        if (targetQuantityInBaseUnit == null) {
+            throw new RuntimeException("Either quantityInBaseUnit or countingQuantity is required");
+        }
+        if (targetQuantityInBaseUnit.compareTo(BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("Quantity must be 0 or positive");
+        }
+        BigDecimal current = getCurrentQuantity(storeId, productId);
+        BigDecimal delta = targetQuantityInBaseUnit.subtract(current);
+        if (delta.compareTo(BigDecimal.ZERO) == 0) {
+            return;
+        }
+        BigDecimal amount = request.getAmount() != null ? request.getAmount() : BigDecimal.ZERO;
+        StockMovement movement = StockMovement.builder()
+                .store(product.getStore())
+                .product(product)
+                .type(StockMovementType.ADJUSTMENT)
+                .quantity(delta)
+                .amount(amount)
+                .movementDate(LocalDate.now())
+                .referenceType(REFERENCE_TYPE_MANUAL_ADJUSTMENT)
+                .referenceId(null)
+                .notes("Manual stock set to " + targetQuantityInBaseUnit + " " + product.getUnit())
+                .build();
+        stockMovementRepository.save(movement);
+    }
+
+    /**
+     * Batch validate inventory: create session, snapshots, and ADJUSTMENT movements.
+     * Sets real stock from physical count; after this, real and estimated will match until new movements occur.
+     */
+    @Transactional
+    public void validateInventory(ValidateInventoryRequest request) {
+        Long storeId = getStoreId();
+        Store store = storeService.getStoreEntityById(storeId);
+        LocalDateTime now = LocalDateTime.now();
+
+        StockInventorySession session = StockInventorySession.builder()
+                .store(store)
+                .startedAt(now)
+                .finishedAt(now)
+                .notes("Inventory validation")
+                .build();
+        session = stockInventorySessionRepository.save(session);
+
+        for (ValidateInventoryItemRequest item : request.getItems()) {
+            StockProduct product = stockProductRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Stock product not found: " + item.getProductId()));
+            if (!product.getStore().getId().equals(storeId)) {
+                throw new RuntimeException("Product not in store: " + item.getProductId());
+            }
+
+            BigDecimal targetBase = item.getQuantityInBaseUnit();
+            if (targetBase == null && item.getCountingQuantity() != null) {
+                if (product.getBasePerCountingUnit() == null || product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) <= 0) {
+                    throw new RuntimeException("Product has no counting unit; use quantityInBaseUnit: " + product.getId());
+                }
+                targetBase = item.getCountingQuantity().multiply(product.getBasePerCountingUnit());
+            }
+            if (targetBase == null) {
+                throw new RuntimeException("Either quantityInBaseUnit or countingQuantity required for product: " + product.getId());
+            }
+            if (targetBase.compareTo(BigDecimal.ZERO) < 0) {
+                throw new RuntimeException("Quantity must be >= 0 for product: " + product.getId());
+            }
+
+            BigDecimal countingQty = (product.getBasePerCountingUnit() != null && product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) > 0)
+                    ? targetBase.divide(product.getBasePerCountingUnit(), 4, RoundingMode.HALF_UP)
+                    : targetBase;
+
+            StockInventorySnapshot snapshot = StockInventorySnapshot.builder()
+                    .session(session)
+                    .product(product)
+                    .countingQuantity(countingQty)
+                    .baseQuantity(targetBase)
+                    .build();
+            stockInventorySnapshotRepository.save(snapshot);
+
+            BigDecimal current = getCurrentQuantity(storeId, product.getId());
+            BigDecimal delta = targetBase.subtract(current);
+            if (delta.compareTo(BigDecimal.ZERO) != 0) {
+                BigDecimal amount = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+                StockMovement movement = StockMovement.builder()
+                        .store(store)
+                        .product(product)
+                        .type(StockMovementType.ADJUSTMENT)
+                        .quantity(delta)
+                        .amount(amount)
+                        .movementDate(LocalDate.now())
+                        .referenceType("INVENTORY_VALIDATION")
+                        .referenceId(session.getId())
+                        .notes("Inventory validation: " + targetBase + " " + product.getUnit())
+                        .build();
+                stockMovementRepository.save(movement);
+            }
+        }
     }
 }
