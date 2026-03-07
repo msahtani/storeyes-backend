@@ -1,6 +1,5 @@
 package io.storeyes.storeyes_coffee.store.entities;
 
-import io.storeyes.storeyes_coffee.auth.entities.UserInfo;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,10 +25,6 @@ public class Store {
 
     @Column(name = "code", nullable = false)
     private String code;
-
-    @ManyToOne
-    @JoinColumn(name = "owner_id")
-    private UserInfo owner;
 
     @Column(name = "name", nullable = false)
     private String name;

@@ -9,7 +9,6 @@ import io.storeyes.storeyes_coffee.store.entities.StoreStatus;
 import io.storeyes.storeyes_coffee.store.mappers.StoreMapper;
 import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
 import io.storeyes.storeyes_coffee.store.specifications.StoreSpecification;
-import io.storeyes.storeyes_coffee.rolemapping.entities.Roles;
 import io.storeyes.storeyes_coffee.rolemapping.repositories.RoleMappingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -69,14 +68,21 @@ public class StoreService {
                 .orElseThrow(() -> new RuntimeException("Store not found with id: " + id));
         return storeMapper.toDTO(store);
     }
+
+    /**
+     * Get store entity by ID. Used when store context provides the ID.
+     */
+    public Store getStoreEntityById(Long id) {
+        return storeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Store not found with id: " + id));
+    }
     
     /**
-     * Get store entity by user ID. Tries RoleMapping (OWNER role) first, falls back to store.owner_id.
+     * Get store entity by user ID via RoleMapping (OWNER role).
      */
     public Store getStoreEntityByOwnerId(String userId) {
-        return roleMappingRepository.findByUser_IdAndRole(userId, Roles.OWNER)
+        return roleMappingRepository.findByUser_IdAndRole_Name(userId, "OWNER")
                 .map(rm -> rm.getStore())
-                .or(() -> storeRepository.findByOwner_Id(userId))
                 .orElseThrow(() -> new RuntimeException("Store not found for user with id: " + userId));
     }
 

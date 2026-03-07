@@ -8,7 +8,7 @@ import io.storeyes.storeyes_coffee.documents.entities.DocumentCategory;
 import io.storeyes.storeyes_coffee.documents.mappers.DocumentMapper;
 import io.storeyes.storeyes_coffee.documents.repositories.DocumentCategoryRepository;
 import io.storeyes.storeyes_coffee.documents.repositories.DocumentRepository;
-import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
+import io.storeyes.storeyes_coffee.security.CurrentStoreContext;
 import io.storeyes.storeyes_coffee.store.entities.Store;
 import io.storeyes.storeyes_coffee.store.services.StoreService;
 import lombok.RequiredArgsConstructor;
@@ -33,11 +33,7 @@ public class DocumentService {
      * Get all documents for the current user's store, optionally filtered by category.
      */
     public List<DocumentDTO> getAllDocumentsByStore(Long categoryId) {
-        String userId = KeycloakTokenUtils.getUserId();
-        if (userId == null) {
-            throw new RuntimeException("User is not authenticated");
-        }
-        Store store = storeService.getStoreEntityByOwnerId(userId);
+        Store store = getCurrentStore();
         List<Document> documents = categoryId != null
                 ? documentRepository.findByStore_IdAndCategory_Id(store.getId(), categoryId)
                 : documentRepository.findByStore_Id(store.getId());
@@ -49,12 +45,7 @@ public class DocumentService {
      */
     @Transactional
     public DocumentDTO createDocument(CreateDocumentRequest request) {
-        String userId = KeycloakTokenUtils.getUserId();
-        if (userId == null) {
-            throw new RuntimeException("User is not authenticated");
-        }
-        
-        Store store = storeService.getStoreEntityByOwnerId(userId);
+        Store store = getCurrentStore();
         
         // Upload file to S3
         String fileUrl = s3Service.uploadFile(request.getFile(), store.getCode());
@@ -85,16 +76,9 @@ public class DocumentService {
      */
     @Transactional
     public DocumentDTO updateDocument(Long id, UpdateDocumentRequest request) {
-        String userId = KeycloakTokenUtils.getUserId();
-        if (userId == null) {
-            throw new RuntimeException("User is not authenticated");
-        }
-        
+        Store userStore = getCurrentStore();
         Document document = documentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Document not found with id: " + id));
-        
-        // Verify that the document belongs to the user's store
-        Store userStore = storeService.getStoreEntityByOwnerId(userId);
         
         if (!document.getStore().getId().equals(userStore.getId())) {
             throw new RuntimeException("Document does not belong to your store");
@@ -141,16 +125,9 @@ public class DocumentService {
      */
     @Transactional
     public void deleteDocument(Long id) {
-        String userId = KeycloakTokenUtils.getUserId();
-        if (userId == null) {
-            throw new RuntimeException("User is not authenticated");
-        }
-        
+        Store userStore = getCurrentStore();
         Document document = documentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Document not found with id: " + id));
-        
-        // Verify that the document belongs to the user's store
-        Store userStore = storeService.getStoreEntityByOwnerId(userId);
         
         if (!document.getStore().getId().equals(userStore.getId())) {
             throw new RuntimeException("Document does not belong to your store");
@@ -162,6 +139,14 @@ public class DocumentService {
         // Delete document from database
         documentRepository.delete(document);
         log.info("Document deleted with ID: {}", id);
+    }
+
+    private Store getCurrentStore() {
+        Long storeId = CurrentStoreContext.getCurrentStoreId();
+        if (storeId == null) {
+            throw new RuntimeException("Store context not found for current user");
+        }
+        return storeService.getStoreEntityById(storeId);
     }
 }
 

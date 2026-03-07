@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Holds the current request's store ID set by {@link StoreContextInterceptor}.
- * In "One Site" there is one store per user (resolved via RoleMapping with OWNER role).
+ * In "One Site" there is one store per user (resolved via RoleMapping).
  */
 public final class CurrentStoreContext {
 
@@ -18,7 +18,7 @@ public final class CurrentStoreContext {
 
     /**
      * Returns the store ID for the current request, or null if not set
-     * (e.g. no authenticated user, or user has no OWNER role mapping).
+     * (e.g. no authenticated user, or user has no role mapping).
      */
     public static Long getCurrentStoreId() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();

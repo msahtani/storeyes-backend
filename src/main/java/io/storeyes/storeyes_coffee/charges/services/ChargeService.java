@@ -10,10 +10,10 @@ import io.storeyes.storeyes_coffee.charges.repositories.PersonnelWeekSalaryRepos
 import io.storeyes.storeyes_coffee.charges.repositories.VariableChargeRepository;
 import io.storeyes.storeyes_coffee.charges.repositories.EmployeeRepository;
 import io.storeyes.storeyes_coffee.charges.utils.WeekCalculationUtils;
+import io.storeyes.storeyes_coffee.security.CurrentStoreContext;
 import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
 import io.storeyes.storeyes_coffee.store.entities.Store;
 import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
-import io.storeyes.storeyes_coffee.store.services.StoreService;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +38,6 @@ public class ChargeService {
     private final PersonnelWeekSalaryRepository personnelWeekSalaryRepository;
     private final VariableChargeRepository variableChargeRepository;
     private final StoreRepository storeRepository;
-    private final StoreService storeService;
     private final EmployeeRepository employeeRepository;
     private final EntityManager entityManager;
     private final UserPreferenceRepository userPreferenceRepository;
@@ -51,14 +50,14 @@ public class ChargeService {
     // ==================== Fixed Charges ====================
 
     /**
-     * Get store ID from authenticated user
+     * Get store ID from store context (set by StoreContextInterceptor).
      */
     private Long getStoreId() {
-        String userId = KeycloakTokenUtils.getUserId();
-        if (userId == null) {
-            throw new RuntimeException("User is not authenticated");
+        Long storeId = CurrentStoreContext.getCurrentStoreId();
+        if (storeId == null) {
+            throw new RuntimeException("Store context not found for current user");
         }
-        return storeService.getStoreByOwnerId(userId).getId();
+        return storeId;
     }
 
     /**

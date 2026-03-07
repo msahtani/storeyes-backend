@@ -14,4 +14,14 @@ public interface RoleMappingRepository extends JpaRepository<RoleMapping, Long> 
      * Find role mapping by user ID and role (e.g. to get the store owned by a user).
      */
     Optional<RoleMapping> findByUser_IdAndRole(String userId, Role role);
+
+    /**
+     * Find role mapping by user ID and role name (e.g. OWNER).
+     */
+    Optional<RoleMapping> findByUser_IdAndRole_Name(String userId, String roleName);
+
+    /**
+     * Find any role mapping for the user (any role).
+     */
+    Optional<RoleMapping> findFirstByUser_Id(String userId);
 }
