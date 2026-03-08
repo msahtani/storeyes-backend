@@ -1,5 +1,7 @@
 package io.storeyes.storeyes_coffee.stock.controllers;
 
+import io.storeyes.storeyes_coffee.stock.dto.ManualConsumptionRequest;
+import io.storeyes.storeyes_coffee.stock.dto.ManualConsumptionRequest;
 import io.storeyes.storeyes_coffee.stock.dto.SetStockRequest;
 import io.storeyes.storeyes_coffee.stock.dto.ValidateInventoryRequest;
 import io.storeyes.storeyes_coffee.stock.dto.StockInventoryItemResponse;
@@ -61,6 +63,20 @@ public class StockInventoryController {
         stockMovementService.validateInventory(request);
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Inventory validated successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    /**
+     * Record manual consumption (waste, spillage, etc.). Creates a CONSUMPTION movement.
+     * POST /api/stock/inventory/consumption
+     */
+    @PostMapping("/consumption")
+    public ResponseEntity<Map<String, Object>> recordConsumption(
+            @Valid @RequestBody ManualConsumptionRequest request) {
+        stockMovementService.createManualConsumption(request);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Consumption recorded successfully");
         response.put("timestamp", java.time.OffsetDateTime.now());
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

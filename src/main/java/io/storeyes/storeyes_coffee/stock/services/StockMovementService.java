@@ -2,6 +2,7 @@ package io.storeyes.storeyes_coffee.stock.services;
 
 import io.storeyes.storeyes_coffee.charges.entities.VariableCharge;
 import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
+import io.storeyes.storeyes_coffee.stock.dto.ManualConsumptionRequest;
 import io.storeyes.storeyes_coffee.stock.dto.SetStockRequest;
 import io.storeyes.storeyes_coffee.stock.dto.ValidateInventoryItemRequest;
 import io.storeyes.storeyes_coffee.stock.dto.ValidateInventoryRequest;
@@ -241,6 +242,55 @@ public class StockMovementService {
                 .referenceType(REFERENCE_TYPE_MANUAL_ADJUSTMENT)
                 .referenceId(null)
                 .notes("Manual stock set to " + targetQuantityInBaseUnit + " " + product.getUnit())
+                .build();
+        stockMovementRepository.save(movement);
+    }
+
+    private static final String REFERENCE_TYPE_MANUAL_CONSUMPTION = "MANUAL_CONSUMPTION";
+
+    /**
+     * Record manual consumption (waste, spillage, etc.).
+     * Creates a CONSUMPTION movement with negative quantity.
+     */
+    @Transactional
+    public void createManualConsumption(ManualConsumptionRequest request) {
+        Long productId = request.getProductId();
+        Long storeId = getStoreId();
+        StockProduct product = stockProductRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Stock product not found with id: " + productId));
+        if (!product.getStore().getId().equals(storeId)) {
+            throw new RuntimeException("Stock product not found with id: " + productId);
+        }
+
+        BigDecimal quantityToConsume = request.getQuantityInBaseUnit();
+        if (quantityToConsume == null && request.getCountingQuantity() != null) {
+            if (product.getBasePerCountingUnit() == null || product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("Product has no counting unit conversion; use quantityInBaseUnit");
+            }
+            quantityToConsume = request.getCountingQuantity().multiply(product.getBasePerCountingUnit());
+        }
+        if (quantityToConsume == null) {
+            throw new RuntimeException("Either quantityInBaseUnit or countingQuantity is required");
+        }
+        if (quantityToConsume.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Quantity must be positive for consumption");
+        }
+
+        BigDecimal amount = request.getAmount() != null ? request.getAmount() : BigDecimal.ZERO;
+        String notes = request.getNotes() != null && !request.getNotes().isBlank()
+                ? request.getNotes().trim()
+                : "Manual consumption: " + quantityToConsume + " " + product.getUnit();
+
+        StockMovement movement = StockMovement.builder()
+                .store(product.getStore())
+                .product(product)
+                .type(StockMovementType.CONSUMPTION)
+                .quantity(quantityToConsume.negate())
+                .amount(amount)
+                .movementDate(LocalDate.now())
+                .referenceType(REFERENCE_TYPE_MANUAL_CONSUMPTION)
+                .referenceId(null)
+                .notes(notes)
                 .build();
         stockMovementRepository.save(movement);
     }
