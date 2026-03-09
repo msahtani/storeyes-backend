@@ -1768,6 +1768,8 @@ public class ChargeService {
                 .productName(prod != null ? prod.getName() : null)
                 .quantity(charge.getQuantity())
                 .unitPrice(charge.getUnitPrice())
+                .unit(prod != null ? prod.getUnit() : null)
+                .countingUnit(prod != null ? prod.getCountingUnit() : null)
                 .build();
     }
 

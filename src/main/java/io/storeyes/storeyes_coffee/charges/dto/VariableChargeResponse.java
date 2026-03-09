@@ -39,4 +39,8 @@ public class VariableChargeResponse {
 
     private BigDecimal quantity;
     private BigDecimal unitPrice;
+
+    /** Unit for display (counting unit preferred): kg, L, piece, etc. */
+    private String unit;
+    private String countingUnit;
 }

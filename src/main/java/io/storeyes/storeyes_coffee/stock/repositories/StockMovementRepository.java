@@ -23,24 +23,59 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
     void deleteByReferenceTypeAndReferenceId(String referenceType, Long referenceId);
 
     /**
-     * Inventory summary per product: quantity and total value from movement amounts.
-     * Value = sum of amounts: PURCHASE and ADJUSTMENT add, CONSUMPTION subtracts.
+     * Estimated summary: quantity and value from PURCHASE, ADJUSTMENT, and ARTICLE_SALE consumption only.
+     * Real stock uses MANUAL_CONSUMPTION; estimated uses ARTICLE_SALE (sales-driven consumption).
+     * Value = PURCHASE+ADJUSTMENT add; ARTICLE_SALE consumption subtracts (usually amount=null so 0).
      */
     @Query(value = """
         SELECT sm.product_id AS product_id,
-               COALESCE(SUM(sm.quantity), 0) AS current_quantity,
+               COALESCE(SUM(sm.quantity), 0) AS estimated_quantity,
                COALESCE(SUM(
                  CASE WHEN sm.type = 'PURCHASE' OR sm.type = 'ADJUSTMENT' THEN COALESCE(sm.amount, 0)
-                      WHEN sm.type = 'CONSUMPTION' THEN -COALESCE(sm.amount, 0)
+                      WHEN sm.type = 'CONSUMPTION' AND sm.reference_type = 'ARTICLE_SALE' THEN -COALESCE(sm.amount, 0)
                       ELSE 0 END
-               ), 0) AS total_value
+               ), 0) AS estimated_value
         FROM stock_movements sm
         WHERE sm.store_id = :storeId
+          AND (sm.type IN ('PURCHASE', 'ADJUSTMENT')
+               OR (sm.type = 'CONSUMPTION' AND sm.reference_type = 'ARTICLE_SALE'))
         GROUP BY sm.product_id
         """, nativeQuery = true)
-    List<Object[]> getInventorySummaryByStore(@Param("storeId") Long storeId);
+    List<Object[]> getEstimatedSummaryByStore(@Param("storeId") Long storeId);
 
-    /** Sum of movement quantities for a product after a given date (for real stock = snapshot + movements after). */
-    @Query("SELECT COALESCE(SUM(m.quantity), 0) FROM StockMovement m WHERE m.store.id = :storeId AND m.product.id = :productId AND m.movementDate > :afterDate")
-    BigDecimal sumQuantityAfterDate(@Param("storeId") Long storeId, @Param("productId") Long productId, @Param("afterDate") java.time.LocalDate afterDate);
+    /**
+     * Sum of movement quantities for real stock after a given date.
+     * Real = snapshot + (PURCHASE + ADJUSTMENT + MANUAL_CONSUMPTION only).
+     * Excludes ARTICLE_SALE consumptions (those are for estimated only).
+     */
+    @Query("""
+        SELECT COALESCE(SUM(m.quantity), 0) FROM StockMovement m
+        WHERE m.store.id = :storeId AND m.product.id = :productId AND m.movementDate > :afterDate
+        AND (m.type IN ('PURCHASE', 'ADJUSTMENT')
+             OR (m.type = 'CONSUMPTION' AND m.referenceType = 'MANUAL_CONSUMPTION'))
+        """)
+    BigDecimal sumQuantityAfterDateForReal(
+            @Param("storeId") Long storeId,
+            @Param("productId") Long productId,
+            @Param("afterDate") java.time.LocalDate afterDate);
+
+    /**
+     * Sum of movement amounts for real stock after a given date.
+     * PURCHASE and ADJUSTMENT add amount; MANUAL_CONSUMPTION subtracts.
+     * Used with snapshot.amount to get real value directly.
+     */
+    @Query(value = """
+        SELECT COALESCE(SUM(
+          CASE WHEN sm.type = 'PURCHASE' OR sm.type = 'ADJUSTMENT' THEN COALESCE(sm.amount, 0)
+               WHEN sm.type = 'CONSUMPTION' AND sm.reference_type = 'MANUAL_CONSUMPTION' THEN -COALESCE(sm.amount, 0)
+               ELSE 0 END
+        ), 0) FROM stock_movements sm
+        WHERE sm.store_id = :storeId AND sm.product_id = :productId AND sm.movement_date > :afterDate
+        AND (sm.type IN ('PURCHASE', 'ADJUSTMENT')
+             OR (sm.type = 'CONSUMPTION' AND sm.reference_type = 'MANUAL_CONSUMPTION'))
+        """, nativeQuery = true)
+    BigDecimal sumAmountAfterDateForReal(
+            @Param("storeId") Long storeId,
+            @Param("productId") Long productId,
+            @Param("afterDate") java.time.LocalDate afterDate);
 }

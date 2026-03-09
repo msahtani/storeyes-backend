@@ -46,6 +46,10 @@ public class StockInventorySnapshot {
     @Column(name = "base_quantity", nullable = false, precision = 12, scale = 4)
     private BigDecimal baseQuantity;
 
+    /** Value (MAD) of validated count at snapshot time. Real value = amount + sum(amounts from real movements after). */
+    @Column(name = "amount", precision = 12, scale = 2)
+    private BigDecimal amount;
+
     @Column(name = "created_at", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     @CreationTimestamp

@@ -109,14 +109,17 @@ public class StockMovementService {
     }
 
     /**
-     * Inventory summary: all store products with quantity and value.
-     * Value = sum of amounts from movements (PURCHASE + ADJUSTMENT add, CONSUMPTION subtracts).
+     * Inventory summary: all store products with estimated and real quantity/value.
+     * <p>
+     * Estimated: PURCHASE + ADJUSTMENT + ARTICLE_SALE consumption (sales-driven).
+     * Real: last snapshot + PURCHASE + ADJUSTMENT + MANUAL_CONSUMPTION (user-validated baseline + manual movements).
+     * Real value = realQuantity * averageUnitCost when realQuantity exists.
      */
     public List<StockInventoryItemResponse> getInventorySummary() {
         Long storeId = getStoreId();
         List<StockProduct> allProducts = stockProductRepository.findByStoreIdOrderByNameAsc(storeId);
-        List<Object[]> rows = stockMovementRepository.getInventorySummaryByStore(storeId);
-        Map<Long, Object[]> summaryByProductId = rows.stream()
+        List<Object[]> estimatedRows = stockMovementRepository.getEstimatedSummaryByStore(storeId);
+        Map<Long, Object[]> estimatedByProductId = estimatedRows.stream()
                 .collect(Collectors.toMap(r -> ((Number) r[0]).longValue(), r -> r));
 
         List<StockInventorySnapshot> allSnapshots = stockInventorySnapshotRepository.findBySessionStoreIdOrderByCreatedAtDesc(storeId);
@@ -127,7 +130,7 @@ public class StockMovementService {
 
         return allProducts.stream()
                 .map(product -> {
-                    Object[] r = summaryByProductId.get(product.getId());
+                    Object[] r = estimatedByProductId.get(product.getId());
                     BigDecimal estimatedQuantity = BigDecimal.ZERO;
                     BigDecimal estimatedValue = BigDecimal.ZERO;
                     if (r != null) {
@@ -141,22 +144,34 @@ public class StockMovementService {
                         estimatedQuantityCounting = estimatedQuantity.divide(basePerCounting, 4, RoundingMode.HALF_UP);
                     }
 
-                    BigDecimal realQuantity = null;
-                    BigDecimal realQuantityCounting = null;
-                    BigDecimal realValue = estimatedValue;
-                    StockInventorySnapshot lastSnapshot = latestSnapshotByProductId.get(product.getId());
-                    if (lastSnapshot != null) {
-                        LocalDate snapshotDate = lastSnapshot.getCreatedAt().toLocalDate();
-                        BigDecimal movementsAfter = stockMovementRepository.sumQuantityAfterDate(storeId, product.getId(), snapshotDate);
-                        realQuantity = lastSnapshot.getBaseQuantity().add(movementsAfter != null ? movementsAfter : BigDecimal.ZERO);
-                        if (basePerCounting != null && basePerCounting.compareTo(BigDecimal.ZERO) > 0) {
-                            realQuantityCounting = realQuantity.divide(basePerCounting, 4, RoundingMode.HALF_UP);
-                        }
-                    }
-
                     BigDecimal averageUnitCost = BigDecimal.ZERO;
                     if (estimatedQuantity.compareTo(BigDecimal.ZERO) > 0 && estimatedValue.compareTo(BigDecimal.ZERO) > 0) {
                         averageUnitCost = estimatedValue.divide(estimatedQuantity, 4, RoundingMode.HALF_UP);
+                    }
+
+                    BigDecimal realQuantity = null;
+                    BigDecimal realQuantityCounting = null;
+                    BigDecimal realValue = null;
+                    StockInventorySnapshot lastSnapshot = latestSnapshotByProductId.get(product.getId());
+                    if (lastSnapshot != null) {
+                        LocalDate snapshotDate = lastSnapshot.getCreatedAt().toLocalDate();
+                        BigDecimal movementsAfterQty = stockMovementRepository.sumQuantityAfterDateForReal(storeId, product.getId(), snapshotDate);
+                        realQuantity = lastSnapshot.getBaseQuantity().add(movementsAfterQty != null ? movementsAfterQty : BigDecimal.ZERO);
+                        if (basePerCounting != null && basePerCounting.compareTo(BigDecimal.ZERO) > 0) {
+                            realQuantityCounting = realQuantity.divide(basePerCounting, 4, RoundingMode.HALF_UP);
+                        }
+                        // Real value: from stored amounts when snapshot has amount, else realQuantity * averageUnitCost
+                        if (lastSnapshot.getAmount() != null) {
+                            BigDecimal amountAfter = stockMovementRepository.sumAmountAfterDateForReal(storeId, product.getId(), snapshotDate);
+                            realValue = lastSnapshot.getAmount().add(amountAfter != null ? amountAfter : BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
+                        } else if (averageUnitCost.compareTo(BigDecimal.ZERO) > 0) {
+                            realValue = realQuantity.multiply(averageUnitCost).setScale(2, RoundingMode.HALF_UP);
+                        }
+                    }
+
+                    BigDecimal varianceValue = null;
+                    if (realValue != null && estimatedValue != null) {
+                        varianceValue = realValue.subtract(estimatedValue).setScale(2, RoundingMode.HALF_UP);
                     }
 
                     return StockInventoryItemResponse.builder()
@@ -174,7 +189,7 @@ public class StockMovementService {
                             .realQuantity(realQuantity)
                             .realQuantityCounting(realQuantityCounting)
                             .realValue(realValue)
-                            .varianceValue(null)
+                            .varianceValue(varianceValue)
                             .totalPurchaseAmount(BigDecimal.ZERO)
                             .averageUnitCost(averageUnitCost)
                             .build();
@@ -333,11 +348,13 @@ public class StockMovementService {
                     ? targetBase.divide(product.getBasePerCountingUnit(), 4, RoundingMode.HALF_UP)
                     : targetBase;
 
+            BigDecimal snapshotAmount = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
             StockInventorySnapshot snapshot = StockInventorySnapshot.builder()
                     .session(session)
                     .product(product)
                     .countingQuantity(countingQty)
                     .baseQuantity(targetBase)
+                    .amount(snapshotAmount)
                     .build();
             stockInventorySnapshotRepository.save(snapshot);
 
