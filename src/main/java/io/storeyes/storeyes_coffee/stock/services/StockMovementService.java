@@ -7,6 +7,7 @@ import io.storeyes.storeyes_coffee.stock.dto.SetStockRequest;
 import io.storeyes.storeyes_coffee.stock.dto.ValidateInventoryItemRequest;
 import io.storeyes.storeyes_coffee.stock.dto.ValidateInventoryRequest;
 import io.storeyes.storeyes_coffee.stock.dto.StockInventoryItemResponse;
+import io.storeyes.storeyes_coffee.stock.dto.StockToBuyItemResponse;
 import io.storeyes.storeyes_coffee.stock.entities.StockMovement;
 import io.storeyes.storeyes_coffee.stock.entities.StockMovementType;
 import io.storeyes.storeyes_coffee.stock.entities.StockProduct;
@@ -193,6 +194,45 @@ public class StockMovementService {
                             .totalPurchaseAmount(BigDecimal.ZERO)
                             .averageUnitCost(averageUnitCost)
                             .build();
+                })
+                .toList();
+    }
+
+    /**
+     * Products that need restocking: real current quantity &lt;= minimal threshold only.
+     * Products without a real quantity (no snapshot yet) are excluded. Used by To Buy screen.
+     */
+    public List<StockToBuyItemResponse> getToBuyList() {
+        List<StockInventoryItemResponse> inventory = getInventorySummary();
+        BigDecimal zero = BigDecimal.ZERO;
+        return inventory.stream()
+                .filter(item -> item.getMinimalThreshold() != null && item.getMinimalThreshold().compareTo(zero) > 0)
+                .filter(item -> item.getRealQuantity() != null && item.getRealQuantity().compareTo(item.getMinimalThreshold()) <= 0)
+                .map(item -> {
+                    BigDecimal currentQty = item.getRealQuantity();
+                    BigDecimal currentCounting = item.getRealQuantityCounting();
+                    BigDecimal basePerCounting = item.getBasePerCountingUnit();
+                    BigDecimal thresholdCounting = null;
+                    if (basePerCounting != null && basePerCounting.compareTo(zero) > 0 && item.getMinimalThreshold() != null) {
+                        thresholdCounting = item.getMinimalThreshold().divide(basePerCounting, 4, RoundingMode.HALF_UP);
+                    }
+                    return StockToBuyItemResponse.builder()
+                            .productId(item.getProductId())
+                            .productName(item.getProductName())
+                            .subCategoryId(item.getSubCategoryId())
+                            .subCategoryName(item.getSubCategoryName())
+                            .unit(item.getUnit())
+                            .countingUnit(item.getCountingUnit())
+                            .basePerCountingUnit(basePerCounting)
+                            .currentQuantity(currentQty)
+                            .currentQuantityCounting(currentCounting)
+                            .minimalThreshold(item.getMinimalThreshold())
+                            .minimalThresholdCounting(thresholdCounting)
+                            .build();
+                })
+                .sorted((a, b) -> {
+                    int cat = String.valueOf(a.getSubCategoryName()).compareTo(String.valueOf(b.getSubCategoryName()));
+                    return cat != 0 ? cat : String.valueOf(a.getProductName()).compareTo(String.valueOf(b.getProductName()));
                 })
                 .toList();
     }

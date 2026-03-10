@@ -5,6 +5,7 @@ import io.storeyes.storeyes_coffee.stock.dto.ManualConsumptionRequest;
 import io.storeyes.storeyes_coffee.stock.dto.SetStockRequest;
 import io.storeyes.storeyes_coffee.stock.dto.ValidateInventoryRequest;
 import io.storeyes.storeyes_coffee.stock.dto.StockInventoryItemResponse;
+import io.storeyes.storeyes_coffee.stock.dto.StockToBuyItemResponse;
 import io.storeyes.storeyes_coffee.stock.services.StockMovementService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,21 @@ public class StockInventoryController {
         Map<String, Object> response = new HashMap<>();
         response.put("data", items);
         response.put("message", "Inventory summary retrieved successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Products that need restocking (current quantity &lt;= minimal threshold).
+     * For To Buy screen. Returns list grouped by subCategory when ordered.
+     * GET /api/stock/inventory/to-buy
+     */
+    @GetMapping("/to-buy")
+    public ResponseEntity<Map<String, Object>> getToBuyList() {
+        List<StockToBuyItemResponse> items = stockMovementService.getToBuyList();
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", items);
+        response.put("message", "To buy list retrieved successfully");
         response.put("timestamp", java.time.OffsetDateTime.now());
         return ResponseEntity.ok(response);
     }
