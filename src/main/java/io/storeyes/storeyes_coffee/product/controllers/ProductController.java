@@ -3,8 +3,9 @@ package io.storeyes.storeyes_coffee.product.controllers;
 import io.storeyes.storeyes_coffee.product.dto.SalesByStoreDateDTO;
 import io.storeyes.storeyes_coffee.product.entities.SalesProduct;
 import io.storeyes.storeyes_coffee.product.repositories.SalesProductRepository;
-import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
+import io.storeyes.storeyes_coffee.security.CurrentStoreContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,23 +19,22 @@ import java.util.stream.Collectors;
 public class ProductController {
 
     private final SalesProductRepository salesProductRepository;
-    private final StoreRepository storeRepository;
 
     /**
      * Get list of sales by store and date.
-     * GET /api/products/sales?storeId=1&date=2025-01-15
+     * Store is determined by the authenticated user's role mapping.
+     * GET /api/products/sales?date=2025-01-15
      *
-     * @param storeId Store ID (required)
-     * @param date    Sale date in ISO format (required)
+     * @param date Sale date in ISO format (required)
      * @return List of {id, productCode, productName, quantity, price, totalPrice}
      */
     @GetMapping("/sales")
     public ResponseEntity<List<SalesByStoreDateDTO>> getSalesByStoreAndDate(
-            @RequestParam Long storeId,
-            @RequestParam LocalDate date) {
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
 
-        if (!storeRepository.existsById(storeId)) {
-            return ResponseEntity.notFound().build();
+        Long storeId = CurrentStoreContext.getCurrentStoreId();
+        if (storeId == null) {
+            throw new RuntimeException("Store context not found for current user");
         }
 
         List<SalesProduct> salesProducts = salesProductRepository.findByStoreIdAndDate(storeId, date);
