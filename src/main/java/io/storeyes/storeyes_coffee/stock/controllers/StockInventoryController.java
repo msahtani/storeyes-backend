@@ -1,18 +1,20 @@
 package io.storeyes.storeyes_coffee.stock.controllers;
 
 import io.storeyes.storeyes_coffee.stock.dto.ManualConsumptionRequest;
-import io.storeyes.storeyes_coffee.stock.dto.ManualConsumptionRequest;
 import io.storeyes.storeyes_coffee.stock.dto.SetStockRequest;
 import io.storeyes.storeyes_coffee.stock.dto.ValidateInventoryRequest;
 import io.storeyes.storeyes_coffee.stock.dto.StockInventoryItemResponse;
 import io.storeyes.storeyes_coffee.stock.dto.StockToBuyItemResponse;
 import io.storeyes.storeyes_coffee.stock.services.StockMovementService;
+import io.storeyes.storeyes_coffee.stock.services.StockSalesSyncService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +25,7 @@ import java.util.Map;
 public class StockInventoryController {
 
     private final StockMovementService stockMovementService;
+    private final StockSalesSyncService stockSalesSyncService;
 
     /**
      * Inventory summary: all store products with current quantity and total value (based on movements).
@@ -93,6 +96,26 @@ public class StockInventoryController {
         stockMovementService.createManualConsumption(request);
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Consumption recorded successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    /**
+     * Apply daily sales (SalesProduct rows) as ARTICLE_SALE stock consumption movements.
+     * This drives the estimated stock used in inventory summary.
+     *
+     * Idempotent: if movements already exist for a SalesProduct (referenceId), it is skipped.
+     *
+     * POST /api/stock/inventory/apply-sales?date=2026-03-11
+     */
+    @PostMapping("/apply-sales")
+    public ResponseEntity<Map<String, Object>> applySalesForDate(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        int processed = stockSalesSyncService.applySalesForDate(date);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Sales applied to stock successfully");
+        response.put("processedCount", processed);
+        response.put("date", date);
         response.put("timestamp", java.time.OffsetDateTime.now());
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

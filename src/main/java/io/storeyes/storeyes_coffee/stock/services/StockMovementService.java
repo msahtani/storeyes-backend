@@ -339,10 +339,11 @@ public class StockMovementService {
 
         BigDecimal quantityToConsume = request.getQuantityInBaseUnit();
         if (quantityToConsume == null && request.getCountingQuantity() != null) {
-            if (product.getBasePerCountingUnit() == null || product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new RuntimeException("Product has no counting unit conversion; use quantityInBaseUnit");
+            if (product.getBasePerCountingUnit() != null && product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) > 0) {
+                quantityToConsume = request.getCountingQuantity().multiply(product.getBasePerCountingUnit());
+            } else {
+                quantityToConsume = request.getCountingQuantity();
             }
-            quantityToConsume = request.getCountingQuantity().multiply(product.getBasePerCountingUnit());
         }
         if (quantityToConsume == null) {
             throw new RuntimeException("Either quantityInBaseUnit or countingQuantity is required");
@@ -397,10 +398,12 @@ public class StockMovementService {
 
             BigDecimal targetBase = item.getQuantityInBaseUnit();
             if (targetBase == null && item.getCountingQuantity() != null) {
-                if (product.getBasePerCountingUnit() == null || product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) <= 0) {
-                    throw new RuntimeException("Product has no counting unit; use quantityInBaseUnit: " + product.getId());
+                if (product.getBasePerCountingUnit() != null && product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) > 0) {
+                    targetBase = item.getCountingQuantity().multiply(product.getBasePerCountingUnit());
+                } else {
+                    // No counting unit: treat countingQuantity as base quantity (1:1, e.g. for unit/piece products)
+                    targetBase = item.getCountingQuantity();
                 }
-                targetBase = item.getCountingQuantity().multiply(product.getBasePerCountingUnit());
             }
             if (targetBase == null) {
                 throw new RuntimeException("Either quantityInBaseUnit or countingQuantity required for product: " + product.getId());

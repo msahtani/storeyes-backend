@@ -18,4 +18,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     Optional<Article> findByIdAndStoreId(Long id, Long storeId);
 
     boolean existsByIdAndStoreId(Long id, Long storeId);
+
+    /** Find article by exact name ignoring case for a given store. Used to link SalesProduct -> Article. */
+    Optional<Article> findFirstByStoreIdAndNameIgnoreCase(Long storeId, String name);
 }
