@@ -23,9 +23,23 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
     void deleteByReferenceTypeAndReferenceId(String referenceType, Long referenceId);
 
     /**
+     * Average purchase cost per base unit for a stock product (from PURCHASE movements).
+     */
+    @Query(value = """
+        SELECT CASE WHEN COALESCE(SUM(sm.quantity), 0) > 0
+                    THEN COALESCE(SUM(sm.amount), 0) / SUM(sm.quantity)
+                    ELSE 0 END
+        FROM stock_movements sm
+        WHERE sm.store_id = :storeId AND sm.product_id = :productId
+          AND sm.type = 'PURCHASE' AND sm.amount IS NOT NULL AND sm.quantity > 0
+        """, nativeQuery = true)
+    BigDecimal getAveragePurchaseCostPerUnit(@Param("storeId") Long storeId,
+                                             @Param("productId") Long productId);
+
+    /**
      * Estimated summary: quantity and value from PURCHASE, ADJUSTMENT, and ARTICLE_SALE consumption only.
      * Real stock uses MANUAL_CONSUMPTION; estimated uses ARTICLE_SALE (sales-driven consumption).
-     * Value = PURCHASE+ADJUSTMENT add; ARTICLE_SALE consumption subtracts (usually amount=null so 0).
+     * ARTICLE_SALE movements now carry amount = consumedQty * avgPurchaseCost so value decreases with sales.
      */
     @Query(value = """
         SELECT sm.product_id AS product_id,
