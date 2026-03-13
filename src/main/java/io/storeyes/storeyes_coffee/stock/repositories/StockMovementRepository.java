@@ -23,7 +23,7 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
     void deleteByReferenceTypeAndReferenceId(String referenceType, Long referenceId);
 
     /**
-     * Average purchase cost per base unit for a stock product (from PURCHASE movements).
+     * Average cost per base unit for a stock product (from PURCHASE and ADJUSTMENT movements).
      */
     @Query(value = """
         SELECT CASE WHEN COALESCE(SUM(sm.quantity), 0) > 0
@@ -31,7 +31,8 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
                     ELSE 0 END
         FROM stock_movements sm
         WHERE sm.store_id = :storeId AND sm.product_id = :productId
-          AND sm.type = 'PURCHASE' AND sm.amount IS NOT NULL AND sm.quantity > 0
+          AND sm.type IN ('PURCHASE', 'ADJUSTMENT')
+          AND sm.amount IS NOT NULL AND sm.quantity > 0
         """, nativeQuery = true)
     BigDecimal getAveragePurchaseCostPerUnit(@Param("storeId") Long storeId,
                                              @Param("productId") Long productId);
@@ -60,11 +61,15 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
     /**
      * Sum of movement quantities for real stock after a given date.
      * Real = snapshot + (PURCHASE + ADJUSTMENT + MANUAL_CONSUMPTION only).
-     * Excludes ARTICLE_SALE consumptions (those are for estimated only).
+     * Includes same-day movements except INVENTORY_VALIDATION (the snapshot's own adjustment).
+     * Uses movement_date >= afterDate with exclusion of INVENTORY_VALIDATION on the snapshot date
+     * so that same-day MANUAL_ADJUSTMENT (setStock) updates real stock correctly.
      */
     @Query("""
         SELECT COALESCE(SUM(m.quantity), 0) FROM StockMovement m
-        WHERE m.store.id = :storeId AND m.product.id = :productId AND m.movementDate > :afterDate
+        WHERE m.store.id = :storeId AND m.product.id = :productId
+        AND ((m.movementDate > :afterDate)
+             OR (m.movementDate = :afterDate AND (m.referenceType IS NULL OR m.referenceType <> 'INVENTORY_VALIDATION')))
         AND (m.type IN ('PURCHASE', 'ADJUSTMENT')
              OR (m.type = 'CONSUMPTION' AND m.referenceType = 'MANUAL_CONSUMPTION'))
         """)
@@ -76,7 +81,8 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
     /**
      * Sum of movement amounts for real stock after a given date.
      * PURCHASE and ADJUSTMENT add amount; MANUAL_CONSUMPTION subtracts.
-     * Used with snapshot.amount to get real value directly.
+     * Includes same-day movements except INVENTORY_VALIDATION so setStock (MANUAL_ADJUSTMENT)
+     * updates real value on the same day as a snapshot.
      */
     @Query(value = """
         SELECT COALESCE(SUM(
@@ -84,7 +90,9 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
                WHEN sm.type = 'CONSUMPTION' AND sm.reference_type = 'MANUAL_CONSUMPTION' THEN -COALESCE(sm.amount, 0)
                ELSE 0 END
         ), 0) FROM stock_movements sm
-        WHERE sm.store_id = :storeId AND sm.product_id = :productId AND sm.movement_date > :afterDate
+        WHERE sm.store_id = :storeId AND sm.product_id = :productId
+        AND ((sm.movement_date > :afterDate)
+             OR (sm.movement_date = :afterDate AND (sm.reference_type IS NULL OR sm.reference_type <> 'INVENTORY_VALIDATION')))
         AND (sm.type IN ('PURCHASE', 'ADJUSTMENT')
              OR (sm.type = 'CONSUMPTION' AND sm.reference_type = 'MANUAL_CONSUMPTION'))
         """, nativeQuery = true)

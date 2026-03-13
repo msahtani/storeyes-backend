@@ -193,6 +193,18 @@ public class StockMovementService {
                         } else if (averageUnitCost.compareTo(BigDecimal.ZERO) > 0) {
                             realValue = realQuantity.multiply(averageUnitCost).setScale(2, RoundingMode.HALF_UP);
                         }
+                    } else {
+                        // No validated snapshot yet: treat estimated as real so that
+                        // purchases/adjustments affect both real and estimated immediately.
+                        if (estimatedQuantity.compareTo(BigDecimal.ZERO) > 0) {
+                            realQuantity = estimatedQuantity;
+                            if (basePerCounting != null && basePerCounting.compareTo(BigDecimal.ZERO) > 0) {
+                                realQuantityCounting = estimatedQuantity.divide(basePerCounting, 4, RoundingMode.HALF_UP);
+                            }
+                            if (estimatedValue.compareTo(BigDecimal.ZERO) > 0) {
+                                realValue = estimatedValue;
+                            }
+                        }
                     }
 
                     BigDecimal varianceValue = null;
@@ -374,12 +386,21 @@ public class StockMovementService {
     /**
      * Batch validate inventory: create session, snapshots, and ADJUSTMENT movements.
      * Sets real stock from physical count; after this, real and estimated will match until new movements occur.
+     * ADJUSTMENT amount is set to (targetValue - currentEstimatedValue) so that estimated value equals real after validation.
      */
     @Transactional
     public void validateInventory(ValidateInventoryRequest request) {
         Long storeId = getStoreId();
         Store store = storeService.getStoreEntityById(storeId);
         LocalDateTime now = LocalDateTime.now();
+
+        // Current estimated value per product (before we add new movements) so we can set ADJUSTMENT amount = delta
+        List<Object[]> estimatedRows = stockMovementRepository.getEstimatedSummaryByStore(storeId);
+        Map<Long, BigDecimal> currentEstimatedValueByProductId = estimatedRows.stream()
+                .collect(Collectors.toMap(
+                        r -> ((Number) r[0]).longValue(),
+                        r -> r[2] != null ? new BigDecimal(r[2].toString()).setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO
+                ));
 
         StockInventorySession session = StockInventorySession.builder()
                 .store(store)
@@ -416,26 +437,29 @@ public class StockMovementService {
                     ? targetBase.divide(product.getBasePerCountingUnit(), 4, RoundingMode.HALF_UP)
                     : targetBase;
 
-            BigDecimal snapshotAmount = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+            BigDecimal targetValue = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
             StockInventorySnapshot snapshot = StockInventorySnapshot.builder()
                     .session(session)
                     .product(product)
                     .countingQuantity(countingQty)
                     .baseQuantity(targetBase)
-                    .amount(snapshotAmount)
+                    .amount(targetValue)
                     .build();
             stockInventorySnapshotRepository.save(snapshot);
 
-            BigDecimal current = getCurrentQuantity(storeId, product.getId());
-            BigDecimal delta = targetBase.subtract(current);
-            if (delta.compareTo(BigDecimal.ZERO) != 0) {
-                BigDecimal amount = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+            BigDecimal currentQty = getCurrentQuantity(storeId, product.getId());
+            BigDecimal deltaQty = targetBase.subtract(currentQty);
+            BigDecimal currentEstimatedValue = currentEstimatedValueByProductId.getOrDefault(product.getId(), BigDecimal.ZERO);
+            // Amount delta so that after adding this ADJUSTMENT: estimated value = target value (same as real)
+            BigDecimal amountDelta = targetValue.subtract(currentEstimatedValue).setScale(2, RoundingMode.HALF_UP);
+            // Create ADJUSTMENT when quantity and/or value need to change
+            if (deltaQty.compareTo(BigDecimal.ZERO) != 0 || amountDelta.compareTo(BigDecimal.ZERO) != 0) {
                 StockMovement movement = StockMovement.builder()
                         .store(store)
                         .product(product)
                         .type(StockMovementType.ADJUSTMENT)
-                        .quantity(delta)
-                        .amount(amount)
+                        .quantity(deltaQty)
+                        .amount(amountDelta)
                         .movementDate(LocalDate.now())
                         .referenceType("INVENTORY_VALIDATION")
                         .referenceId(session.getId())

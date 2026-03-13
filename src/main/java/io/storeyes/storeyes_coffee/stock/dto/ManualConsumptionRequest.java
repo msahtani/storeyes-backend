@@ -22,8 +22,11 @@ public class ManualConsumptionRequest {
     @NotNull(message = "Product ID is required")
     private Long productId;
 
-    /** Quantity consumed in base unit (positive value – will be stored as negative). */
-    @NotNull(message = "Quantity is required")
+    /**
+     * Quantity consumed in base unit (positive value – will be stored as negative).
+     * Optional when countingQuantity is provided; service layer validates that at least
+     * one of quantityInBaseUnit or countingQuantity is present and > 0.
+     */
     @DecimalMin(value = "0", inclusive = true, message = "Quantity must be 0 or positive")
     private BigDecimal quantityInBaseUnit;
 
