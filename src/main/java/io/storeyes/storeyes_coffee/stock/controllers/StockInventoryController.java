@@ -73,6 +73,22 @@ public class StockInventoryController {
     }
 
     /**
+     * Save physical inventory counts without creating ADJUSTMENT movements.
+     * This is the "Fill out the form" / "Save" step: it updates real quantities and values used for variance,
+     * but does not reset estimated stock. The reset happens only when /validate is called.
+     * POST /api/stock/inventory/count
+     */
+    @PostMapping("/count")
+    public ResponseEntity<Map<String, Object>> countInventory(
+            @Valid @RequestBody ValidateInventoryRequest request) {
+        stockMovementService.saveInventoryCounts(request);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Inventory counts saved successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    /**
      * Batch validate inventory: create session, snapshots, ADJUSTMENT movements.
      * Use when owner accepts physical counts as new baseline (Accept and validate).
      * POST /api/stock/inventory/validate

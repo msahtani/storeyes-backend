@@ -43,17 +43,32 @@ public class StockProductService {
     public List<StockProductResponse> getProducts(Long subCategoryId, String search) {
         Long storeId = getStoreId();
         List<StockProduct> products;
+
+        // When a subCategoryId is provided, include products linked directly to that sub-category
+        // AND to any of its children (sub-sub categories). This lets "Raw materials" return
+        // its own products plus products of its children like Bar / Cuisine / Congelateur / Soda.
         if (subCategoryId != null && search != null && !search.isBlank()) {
-            products = stockProductRepository.findByStoreIdAndSubCategoryIdAndNameContainingIgnoreCaseOrderByNameAsc(
-                    storeId, subCategoryId, search.trim());
+            List<Long> relevantSubCategoryIds = getSubCategoryIdsWithChildren(subCategoryId);
+            products = stockProductRepository.findByStoreIdAndSubCategoryIdInAndNameContainingIgnoreCaseOrderByNameAsc(
+                    storeId, relevantSubCategoryIds, search.trim());
         } else if (subCategoryId != null) {
-            products = stockProductRepository.findByStoreIdAndSubCategoryIdOrderByNameAsc(storeId, subCategoryId);
+            List<Long> relevantSubCategoryIds = getSubCategoryIdsWithChildren(subCategoryId);
+            products = stockProductRepository.findByStoreIdAndSubCategoryIdInOrderByNameAsc(storeId, relevantSubCategoryIds);
         } else if (search != null && !search.isBlank()) {
             products = stockProductRepository.findByStoreIdAndNameContainingIgnoreCaseOrderByNameAsc(storeId, search.trim());
         } else {
             products = stockProductRepository.findByStoreIdOrderByNameAsc(storeId);
         }
         return products.stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    private List<Long> getSubCategoryIdsWithChildren(Long subCategoryId) {
+        List<Long> ids = variableChargeSubCategoryRepository.findByParentSubCategoryIdOrderBySortOrderAsc(subCategoryId)
+                .stream()
+                .map(sc -> sc.getId())
+                .collect(Collectors.toList());
+        ids.add(subCategoryId);
+        return ids;
     }
 
     /**
@@ -85,13 +100,14 @@ public class StockProductService {
         }
 
         BigDecimal threshold = request.getMinimalThreshold() != null ? request.getMinimalThreshold() : BigDecimal.ZERO;
+        BigDecimal unitPrice = request.getUnitPrice() != null ? request.getUnitPrice() : BigDecimal.ZERO;
 
         StockProduct product = StockProduct.builder()
                 .store(store)
                 .subCategory(subCategory)
                 .name(request.getName().trim())
                 .unit(request.getUnit().trim())
-                .unitPrice(request.getUnitPrice())
+                .unitPrice(unitPrice)
                 .minimalThreshold(threshold)
                 .countingUnit(request.getCountingUnit() != null ? request.getCountingUnit().trim() : null)
                 .basePerCountingUnit(request.getBasePerCountingUnit())

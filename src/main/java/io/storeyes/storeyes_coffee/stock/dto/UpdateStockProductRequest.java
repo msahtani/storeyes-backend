@@ -23,7 +23,7 @@ public class UpdateStockProductRequest {
     @Size(max = 50, message = "Unit must not exceed 50 characters")
     private String unit;
 
-    @DecimalMin(value = "0", inclusive = false, message = "Unit price must be positive")
+    @DecimalMin(value = "0", inclusive = true, message = "Unit price must be 0 or positive when set")
     private BigDecimal unitPrice;
 
     @DecimalMin(value = "0", inclusive = true, message = "Minimal threshold must be 0 or positive")

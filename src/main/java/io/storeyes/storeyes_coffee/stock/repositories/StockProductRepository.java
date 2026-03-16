@@ -17,4 +17,9 @@ public interface StockProductRepository extends JpaRepository<StockProduct, Long
 
     List<StockProduct> findByStoreIdAndSubCategoryIdAndNameContainingIgnoreCaseOrderByNameAsc(
             Long storeId, Long subCategoryId, String search);
+
+    List<StockProduct> findByStoreIdAndSubCategoryIdInOrderByNameAsc(Long storeId, List<Long> subCategoryIds);
+
+    List<StockProduct> findByStoreIdAndSubCategoryIdInAndNameContainingIgnoreCaseOrderByNameAsc(
+            Long storeId, List<Long> subCategoryIds, String search);
 }

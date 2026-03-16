@@ -384,9 +384,69 @@ public class StockMovementService {
     }
 
     /**
+     * Save physical inventory counts only: create session and snapshots, but do NOT create ADJUSTMENT movements.
+     * Use this for the "Fill out the form" / "Save" step – it updates the real quantities/values visible in inventory
+     * screens, while leaving estimated stock unchanged until the owner explicitly accepts validation.
+     */
+    @Transactional
+    public void saveInventoryCounts(ValidateInventoryRequest request) {
+        Long storeId = getStoreId();
+        Store store = storeService.getStoreEntityById(storeId);
+        LocalDateTime now = LocalDateTime.now();
+
+        StockInventorySession session = StockInventorySession.builder()
+                .store(store)
+                .startedAt(now)
+                .finishedAt(now)
+                .notes("Inventory count (save only)")
+                .build();
+        session = stockInventorySessionRepository.save(session);
+
+        for (ValidateInventoryItemRequest item : request.getItems()) {
+            StockProduct product = stockProductRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Stock product not found: " + item.getProductId()));
+            if (!product.getStore().getId().equals(storeId)) {
+                throw new RuntimeException("Product not in store: " + item.getProductId());
+            }
+
+            BigDecimal targetBase = item.getQuantityInBaseUnit();
+            if (targetBase == null && item.getCountingQuantity() != null) {
+                if (product.getBasePerCountingUnit() != null && product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) > 0) {
+                    targetBase = item.getCountingQuantity().multiply(product.getBasePerCountingUnit());
+                } else {
+                    // No counting unit: treat countingQuantity as base quantity (1:1, e.g. for unit/piece products)
+                    targetBase = item.getCountingQuantity();
+                }
+            }
+            if (targetBase == null) {
+                throw new RuntimeException("Either quantityInBaseUnit or countingQuantity required for product: " + product.getId());
+            }
+            if (targetBase.compareTo(BigDecimal.ZERO) < 0) {
+                throw new RuntimeException("Quantity must be >= 0 for product: " + product.getId());
+            }
+
+            BigDecimal countingQty = (product.getBasePerCountingUnit() != null && product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) > 0)
+                    ? targetBase.divide(product.getBasePerCountingUnit(), 4, RoundingMode.HALF_UP)
+                    : targetBase;
+
+            BigDecimal targetValue = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+            StockInventorySnapshot snapshot = StockInventorySnapshot.builder()
+                    .session(session)
+                    .product(product)
+                    .countingQuantity(countingQty)
+                    .baseQuantity(targetBase)
+                    .amount(targetValue)
+                    .build();
+            stockInventorySnapshotRepository.save(snapshot);
+        }
+    }
+
+    /**
      * Batch validate inventory: create session, snapshots, and ADJUSTMENT movements.
      * Sets real stock from physical count; after this, real and estimated will match until new movements occur.
      * ADJUSTMENT amount is set to (targetValue - currentEstimatedValue) so that estimated value equals real after validation.
+     *
+     * This is used for the explicit "Accept and validate" step.
      */
     @Transactional
     public void validateInventory(ValidateInventoryRequest request) {
