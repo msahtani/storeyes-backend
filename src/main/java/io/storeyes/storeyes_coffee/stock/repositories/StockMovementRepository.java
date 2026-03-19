@@ -113,6 +113,7 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
         SELECT COALESCE(SUM(m.quantity), 0) FROM StockMovement m
         WHERE m.store.id = :storeId AND m.product.id = :productId
         AND m.createdAt > :afterCreatedAt
+        AND (m.referenceType IS NULL OR m.referenceType <> 'INVENTORY_VALIDATION')
         AND (m.type IN ('PURCHASE', 'ADJUSTMENT')
              OR (m.type = 'CONSUMPTION' AND m.referenceType = 'MANUAL_CONSUMPTION'))
         """)
@@ -133,6 +134,7 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
         ), 0) FROM stock_movements sm
         WHERE sm.store_id = :storeId AND sm.product_id = :productId
         AND sm.created_at > :afterCreatedAt
+        AND (sm.reference_type IS NULL OR sm.reference_type <> 'INVENTORY_VALIDATION')
         AND (sm.type IN ('PURCHASE', 'ADJUSTMENT')
              OR (sm.type = 'CONSUMPTION' AND sm.reference_type = 'MANUAL_CONSUMPTION'))
         """, nativeQuery = true)
