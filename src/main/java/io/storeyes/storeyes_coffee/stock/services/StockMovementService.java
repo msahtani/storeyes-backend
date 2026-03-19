@@ -200,9 +200,8 @@ public class StockMovementService {
                         BigDecimal driftAmt = stockMovementRepository.sumAmountAfterCreatedAtForReal(storeId, product.getId(), afterCreatedAt);
                         realQuantity = lastSnapshot.getBaseQuantity().add(driftQty);
                         if (basePerCounting != null && basePerCounting.compareTo(BigDecimal.ZERO) > 0) {
-                            realQuantityCounting = lastSnapshot.getCountingQuantity() != null
-                                    ? lastSnapshot.getCountingQuantity()
-                                    : realQuantity.divide(basePerCounting, 4, RoundingMode.HALF_UP);
+                            // Always derive from realQuantity so purchases/drift are reflected (snapshot counting qty is stale).
+                            realQuantityCounting = realQuantity.divide(basePerCounting, 4, RoundingMode.HALF_UP);
                         }
                         if (lastSnapshot.getAmount() != null && lastSnapshot.getAmount().compareTo(BigDecimal.ZERO) > 0) {
                             realValue = lastSnapshot.getAmount().add(driftAmt).setScale(2, RoundingMode.HALF_UP);
