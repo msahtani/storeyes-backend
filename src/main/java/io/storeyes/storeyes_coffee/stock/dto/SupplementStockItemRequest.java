@@ -9,7 +9,10 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 
-/** One product in a batch stock supplement (received goods not recorded via variable charge). */
+/**
+ * One product in a stock supplement operation (incoming goods outside purchase flow).
+ * Represents a POSITIVE delta to add (quantity + cost for this incoming batch).
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -27,7 +30,7 @@ public class SupplementStockItemRequest {
     @DecimalMin(value = "0", inclusive = false, message = "Delta counting quantity must be positive")
     private BigDecimal deltaCountingQuantity;
 
-    /** Total purchase cost (MAD) for this incoming batch. Required when quantity is provided. */
+    /** Total purchase cost (MAD) for this incoming batch. Required when delta quantity is provided. */
     @NotNull(message = "Amount is required")
     @DecimalMin(value = "0", inclusive = true, message = "Amount must be 0 or positive")
     private BigDecimal amount;

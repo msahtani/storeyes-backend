@@ -108,7 +108,18 @@ public class StockMovementService {
         movement.setStore(charge.getStore());
         movement.setProduct(charge.getProduct());
         movement.setType(StockMovementType.PURCHASE);
-        movement.setQuantity(charge.getQuantity());
+        // Charge quantity is entered in the product's display/counting unit in the UI.
+        // Stock movements are stored in BASE unit for consistent calculations.
+        BigDecimal baseQty = charge.getQuantity();
+        if (baseQty != null
+                && charge.getProduct() != null
+                && charge.getProduct().getCountingUnit() != null
+                && !charge.getProduct().getCountingUnit().isBlank()
+                && charge.getProduct().getBasePerCountingUnit() != null
+                && charge.getProduct().getBasePerCountingUnit().compareTo(BigDecimal.ZERO) > 0) {
+            baseQty = baseQty.multiply(charge.getProduct().getBasePerCountingUnit());
+        }
+        movement.setQuantity(baseQty);
         movement.setAmount(charge.getAmount() != null ? charge.getAmount() : null);
         movement.setMovementDate(charge.getDate() != null ? charge.getDate() : LocalDate.now());
 
@@ -181,17 +192,20 @@ public class StockMovementService {
                     BigDecimal realValue = null;
                     StockInventorySnapshot lastSnapshot = latestSnapshotByProductId.get(product.getId());
                     if (lastSnapshot != null) {
-                        // Real stock = exactly what the user last physically counted (the snapshot value).
-                        // Post-snapshot movements (purchases, sales consumption) affect estimated only;
-                        // real stays frozen at the last count until the user saves a new count via the form.
-                        realQuantity = lastSnapshot.getBaseQuantity();
+                        // Real = last snapshot + incoming/manual movements after snapshot date.
+                        // We intentionally exclude ARTICLE_SALE consumption from real (sales only affect estimated),
+                        // so variance appears until the owner counts and validates.
+                        java.time.LocalDateTime afterCreatedAt = lastSnapshot.getCreatedAt();
+                        BigDecimal driftQty = stockMovementRepository.sumQuantityAfterCreatedAtForReal(storeId, product.getId(), afterCreatedAt);
+                        BigDecimal driftAmt = stockMovementRepository.sumAmountAfterCreatedAtForReal(storeId, product.getId(), afterCreatedAt);
+                        realQuantity = lastSnapshot.getBaseQuantity().add(driftQty);
                         if (basePerCounting != null && basePerCounting.compareTo(BigDecimal.ZERO) > 0) {
                             realQuantityCounting = lastSnapshot.getCountingQuantity() != null
                                     ? lastSnapshot.getCountingQuantity()
                                     : realQuantity.divide(basePerCounting, 4, RoundingMode.HALF_UP);
                         }
                         if (lastSnapshot.getAmount() != null && lastSnapshot.getAmount().compareTo(BigDecimal.ZERO) > 0) {
-                            realValue = lastSnapshot.getAmount().setScale(2, RoundingMode.HALF_UP);
+                            realValue = lastSnapshot.getAmount().add(driftAmt).setScale(2, RoundingMode.HALF_UP);
                         } else if (averageUnitCost.compareTo(BigDecimal.ZERO) > 0) {
                             realValue = realQuantity.multiply(averageUnitCost).setScale(2, RoundingMode.HALF_UP);
                         }
@@ -388,9 +402,11 @@ public class StockMovementService {
     private static final String REFERENCE_TYPE_MANUAL_SUPPLEMENT = "MANUAL_SUPPLEMENT";
 
     /**
-     * Supplement stock: record goods received outside the normal variable-charge purchase flow.
-     * Creates an ADJUSTMENT movement with a positive delta for each item that has deltaQty > 0.
-     * Effect is immediate on estimated stock; no snapshot is created.
+     * Supplement stock: record incoming goods outside the variable-charge purchase flow.
+     * Creates an ADJUSTMENT movement with a POSITIVE delta for each item that has deltaQty > 0.
+     *
+     * Real stock is computed as: last snapshot + incoming movements (PURCHASE + ADJUSTMENT + MANUAL_CONSUMPTION),
+     * excluding ARTICLE_SALE consumption. Therefore, this operation increases BOTH real and estimated without variance.
      */
     @Transactional
     public void supplementStock(List<SupplementStockItemRequest> items) {

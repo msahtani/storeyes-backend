@@ -104,4 +104,40 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
             @Param("storeId") Long storeId,
             @Param("productId") Long productId,
             @Param("afterDate") java.time.LocalDate afterDate);
+
+    /**
+     * Real drift computed by createdAt timestamp (fixes same-day purchase vs snapshot ordering).
+     * Includes PURCHASE + ADJUSTMENT + MANUAL_CONSUMPTION only (excludes ARTICLE_SALE).
+     */
+    @Query("""
+        SELECT COALESCE(SUM(m.quantity), 0) FROM StockMovement m
+        WHERE m.store.id = :storeId AND m.product.id = :productId
+        AND m.createdAt > :afterCreatedAt
+        AND (m.type IN ('PURCHASE', 'ADJUSTMENT')
+             OR (m.type = 'CONSUMPTION' AND m.referenceType = 'MANUAL_CONSUMPTION'))
+        """)
+    BigDecimal sumQuantityAfterCreatedAtForReal(
+            @Param("storeId") Long storeId,
+            @Param("productId") Long productId,
+            @Param("afterCreatedAt") java.time.LocalDateTime afterCreatedAt);
+
+    /**
+     * Sum of movement amounts for real drift by createdAt.
+     * PURCHASE and ADJUSTMENT add amount; MANUAL_CONSUMPTION subtracts.
+     */
+    @Query(value = """
+        SELECT COALESCE(SUM(
+          CASE WHEN sm.type = 'PURCHASE' OR sm.type = 'ADJUSTMENT' THEN COALESCE(sm.amount, 0)
+               WHEN sm.type = 'CONSUMPTION' AND sm.reference_type = 'MANUAL_CONSUMPTION' THEN -COALESCE(sm.amount, 0)
+               ELSE 0 END
+        ), 0) FROM stock_movements sm
+        WHERE sm.store_id = :storeId AND sm.product_id = :productId
+        AND sm.created_at > :afterCreatedAt
+        AND (sm.type IN ('PURCHASE', 'ADJUSTMENT')
+             OR (sm.type = 'CONSUMPTION' AND sm.reference_type = 'MANUAL_CONSUMPTION'))
+        """, nativeQuery = true)
+    BigDecimal sumAmountAfterCreatedAtForReal(
+            @Param("storeId") Long storeId,
+            @Param("productId") Long productId,
+            @Param("afterCreatedAt") java.time.LocalDateTime afterCreatedAt);
 }
