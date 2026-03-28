@@ -6,6 +6,8 @@ import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
 import io.storeyes.storeyes_coffee.stock.entities.Article;
 import io.storeyes.storeyes_coffee.stock.repositories.ArticleRepository;
 import io.storeyes.storeyes_coffee.stock.repositories.StockMovementRepository;
+import io.storeyes.storeyes_coffee.store.entities.Store;
+import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
 import io.storeyes.storeyes_coffee.store.services.StoreService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -38,8 +40,9 @@ public class StockSalesSyncService {
     private final StockMovementRepository stockMovementRepository;
     private final StockConsumptionService stockConsumptionService;
     private final StoreService storeService;
+    private final StoreRepository storeRepository;
 
-    private Long getStoreId() {
+    private Long getStoreIdFromContext() {
         String userId = KeycloakTokenUtils.getUserId();
         if (userId == null) {
             throw new RuntimeException("User is not authenticated");
@@ -48,15 +51,15 @@ public class StockSalesSyncService {
     }
 
     /**
-     * Apply sales for a given date: create ARTICLE_SALE movements for each SalesProduct row.
+     * Apply sales for a given date and store: create ARTICLE_SALE movements for each SalesProduct row.
      * Idempotent: if movements already exist for a SalesProduct (referenceId), it is skipped.
      *
+     * @param storeId store to process
      * @param date sale date (matches SalesProduct.date)
      * @return number of SalesProduct rows that were converted into stock consumption (i.e. newly processed)
      */
     @Transactional
-    public int applySalesForDate(LocalDate date) {
-        Long storeId = getStoreId();
+    public int applySalesForDateForStore(Long storeId, LocalDate date) {
         List<SalesProduct> sales = salesProductRepository.findByStoreIdAndDate(storeId, date);
         if (sales.isEmpty()) {
             log.info("No SalesProduct rows for store {} and date {}", storeId, date);
@@ -104,6 +107,37 @@ public class StockSalesSyncService {
 
         log.info("Applied sales for store {} and date {}: {} SalesProduct rows processed", storeId, date, processed);
         return processed;
+    }
+
+    /**
+     * Apply sales for a given date across all stores. Used by the cron job (no user context).
+     *
+     * @param date sale date (matches SalesProduct.date)
+     * @return total number of SalesProduct rows processed across all stores
+     */
+    @Transactional
+    public int applySalesForAllStores(LocalDate date) {
+        List<Store> stores = storeRepository.findAll();
+        int totalProcessed = 0;
+        for (Store store : stores) {
+            try {
+                totalProcessed += applySalesForDateForStore(store.getId(), date);
+            } catch (Exception e) {
+                log.error("Failed to apply sales for store {} and date {}: {}", store.getId(), date, e.getMessage(), e);
+            }
+        }
+        return totalProcessed;
+    }
+
+    /**
+     * Apply sales for a given date for the current user's store. Used by the controller (requires auth).
+     *
+     * @param date sale date (matches SalesProduct.date)
+     * @return number of SalesProduct rows processed
+     */
+    public int applySalesForDate(LocalDate date) {
+        Long storeId = getStoreIdFromContext();
+        return applySalesForDateForStore(storeId, date);
     }
 }
 

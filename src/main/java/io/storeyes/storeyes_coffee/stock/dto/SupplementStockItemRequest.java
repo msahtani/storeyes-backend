@@ -30,8 +30,7 @@ public class SupplementStockItemRequest {
     @DecimalMin(value = "0", inclusive = false, message = "Delta counting quantity must be positive")
     private BigDecimal deltaCountingQuantity;
 
-    /** Total purchase cost (MAD) for this incoming batch. Required when delta quantity is provided. */
-    @NotNull(message = "Amount is required")
+    /** Total cost (MAD). Optional: when null, computed as quantity × product.unitPrice. */
     @DecimalMin(value = "0", inclusive = true, message = "Amount must be 0 or positive")
     private BigDecimal amount;
 }

@@ -10,7 +10,14 @@ import java.util.Optional;
 
 public interface RecipeIngredientRepository extends JpaRepository<RecipeIngredient, Long> {
 
-    @Query("SELECT r FROM RecipeIngredient r JOIN r.product p WHERE r.article.id = :articleId ORDER BY p.name")
+    @Query("""
+            SELECT DISTINCT r FROM RecipeIngredient r
+            JOIN FETCH r.article
+            JOIN FETCH r.product p
+            JOIN FETCH p.store
+            WHERE r.article.id = :articleId
+            ORDER BY p.name
+            """)
     List<RecipeIngredient> findByArticleIdOrderByProductName(@Param("articleId") Long articleId);
 
     Optional<RecipeIngredient> findByIdAndArticleId(Long id, Long articleId);

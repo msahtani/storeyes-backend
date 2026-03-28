@@ -8,12 +8,15 @@ import io.storeyes.storeyes_coffee.stock.entities.Article;
 import io.storeyes.storeyes_coffee.stock.entities.RecipeIngredient;
 import io.storeyes.storeyes_coffee.stock.entities.StockProduct;
 import io.storeyes.storeyes_coffee.stock.repositories.RecipeIngredientRepository;
+import io.storeyes.storeyes_coffee.stock.repositories.StockMovementRepository;
 import io.storeyes.storeyes_coffee.stock.repositories.StockProductRepository;
 import io.storeyes.storeyes_coffee.store.services.StoreService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +26,7 @@ public class RecipeIngredientService {
 
     private final RecipeIngredientRepository recipeIngredientRepository;
     private final StockProductRepository stockProductRepository;
+    private final StockMovementRepository stockMovementRepository;
     private final ArticleService articleService;
     private final StoreService storeService;
 
@@ -94,13 +98,23 @@ public class RecipeIngredientService {
     }
 
     private RecipeIngredientResponse toResponse(RecipeIngredient ri) {
+        StockProduct p = ri.getProduct();
+        Long storeId = p.getStore().getId();
+        BigDecimal unitPrice = p.getUnitPrice() != null ? p.getUnitPrice() : BigDecimal.ZERO;
+        BigDecimal avgCost = stockMovementRepository.getAveragePurchaseCostPerUnit(storeId, p.getId());
+        if (avgCost == null) {
+            avgCost = BigDecimal.ZERO;
+        }
+        avgCost = avgCost.setScale(4, RoundingMode.HALF_UP);
         return RecipeIngredientResponse.builder()
                 .id(ri.getId())
                 .articleId(ri.getArticle().getId())
-                .productId(ri.getProduct().getId())
-                .productName(ri.getProduct().getName())
-                .productUnit(ri.getProduct().getUnit())
+                .productId(p.getId())
+                .productName(p.getName())
+                .productUnit(p.getUnit())
                 .quantity(ri.getQuantity())
+                .productUnitPrice(unitPrice.setScale(4, RoundingMode.HALF_UP))
+                .averageUnitCost(avgCost)
                 .createdAt(ri.getCreatedAt())
                 .build();
     }

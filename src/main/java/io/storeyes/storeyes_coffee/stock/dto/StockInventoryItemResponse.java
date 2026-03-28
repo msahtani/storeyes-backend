@@ -47,5 +47,7 @@ public class StockInventoryItemResponse {
 
     private BigDecimal totalPurchaseAmount;
     private BigDecimal averageUnitCost;
+    /** Unit price from stock product (per base unit). Used for amount = quantity × unitPrice. */
+    private BigDecimal unitPrice;
 
 }

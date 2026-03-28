@@ -28,8 +28,8 @@ public class StockSalesScheduler {
     @Scheduled(cron = "0 30 3 * * *")
     public void applyYesterdaySalesToStock() {
         LocalDate yesterday = LocalDate.now().minusDays(1);
-        int processed = stockSalesSyncService.applySalesForDate(yesterday);
-        log.info("Applied sales to stock for date {} – processed {} SalesProduct rows", yesterday, processed);
+        int processed = stockSalesSyncService.applySalesForAllStores(yesterday);
+        log.info("Applied sales to stock for date {} – processed {} SalesProduct rows across all stores", yesterday, processed);
     }
 }
 

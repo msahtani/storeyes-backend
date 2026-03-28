@@ -120,7 +120,20 @@ public class StockMovementService {
             baseQty = baseQty.multiply(charge.getProduct().getBasePerCountingUnit());
         }
         movement.setQuantity(baseQty);
-        movement.setAmount(charge.getAmount() != null ? charge.getAmount() : null);
+        // Stock movement amount = quantity × unit price (for stock valuation).
+        // Charge service keeps the manual amount for accounting; stock uses calculated for consistency.
+        BigDecimal movementAmount = BigDecimal.ZERO;
+        if (charge.getProduct() != null && charge.getProduct().getUnitPrice() != null
+                && charge.getProduct().getUnitPrice().compareTo(BigDecimal.ZERO) > 0 && baseQty != null) {
+            if (charge.getProduct().getBasePerCountingUnit() != null
+                    && charge.getProduct().getBasePerCountingUnit().compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal countingQty = baseQty.divide(charge.getProduct().getBasePerCountingUnit(), 4, RoundingMode.HALF_UP);
+                movementAmount = countingQty.multiply(charge.getProduct().getUnitPrice()).setScale(2, RoundingMode.HALF_UP);
+            } else {
+                movementAmount = baseQty.multiply(charge.getProduct().getUnitPrice()).setScale(2, RoundingMode.HALF_UP);
+            }
+        }
+        movement.setAmount(movementAmount);
         movement.setMovementDate(charge.getDate() != null ? charge.getDate() : LocalDate.now());
 
         stockMovementRepository.save(movement);
@@ -245,6 +258,7 @@ public class StockMovementService {
                             .varianceValue(varianceValue)
                             .totalPurchaseAmount(BigDecimal.ZERO)
                             .averageUnitCost(averageUnitCost)
+                            .unitPrice(product.getUnitPrice() != null ? product.getUnitPrice() : BigDecimal.ZERO)
                             .build();
                 })
                 .toList();
@@ -440,7 +454,18 @@ public class StockMovementService {
                 continue; // skip products with no positive delta
             }
 
-            BigDecimal amount = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+            // Amount: use provided value, or compute as quantity × unitPrice.
+            // unitPrice is per counting unit when product has counting unit, else per base unit.
+            BigDecimal deltaCountingQty = (product.getBasePerCountingUnit() != null && product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) > 0)
+                    ? deltaBase.divide(product.getBasePerCountingUnit(), 4, RoundingMode.HALF_UP)
+                    : deltaBase;
+            BigDecimal qtyForAmount = (product.getBasePerCountingUnit() != null && product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) > 0)
+                    ? deltaCountingQty : deltaBase;
+            BigDecimal amount = item.getAmount() != null && item.getAmount().compareTo(BigDecimal.ZERO) >= 0
+                    ? item.getAmount()
+                    : (product.getUnitPrice() != null && product.getUnitPrice().compareTo(BigDecimal.ZERO) > 0
+                            ? qtyForAmount.multiply(product.getUnitPrice()).setScale(2, RoundingMode.HALF_UP)
+                            : BigDecimal.ZERO);
             StockMovement movement = StockMovement.builder()
                     .store(store)
                     .product(product)
@@ -502,7 +527,15 @@ public class StockMovementService {
                     ? targetBase.divide(product.getBasePerCountingUnit(), 4, RoundingMode.HALF_UP)
                     : targetBase;
 
-            BigDecimal targetValue = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+            // Amount: use provided value, or compute as quantity × unitPrice.
+            // unitPrice is per counting unit when product has counting unit, else per base unit.
+            BigDecimal qtyForAmount = (product.getBasePerCountingUnit() != null && product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) > 0)
+                    ? countingQty : targetBase;
+            BigDecimal targetValue = item.getAmount() != null && item.getAmount().compareTo(BigDecimal.ZERO) >= 0
+                    ? item.getAmount()
+                    : (product.getUnitPrice() != null && product.getUnitPrice().compareTo(BigDecimal.ZERO) > 0
+                            ? qtyForAmount.multiply(product.getUnitPrice()).setScale(2, RoundingMode.HALF_UP)
+                            : BigDecimal.ZERO);
             StockInventorySnapshot snapshot = StockInventorySnapshot.builder()
                     .session(session)
                     .product(product)
@@ -577,7 +610,15 @@ public class StockMovementService {
                     ? targetBase.divide(product.getBasePerCountingUnit(), 4, RoundingMode.HALF_UP)
                     : targetBase;
 
-            BigDecimal targetValue = item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO;
+            // Amount: use provided value, or compute as quantity × unitPrice.
+            // unitPrice is per counting unit when product has counting unit, else per base unit.
+            BigDecimal qtyForAmount = (product.getBasePerCountingUnit() != null && product.getBasePerCountingUnit().compareTo(BigDecimal.ZERO) > 0)
+                    ? countingQty : targetBase;
+            BigDecimal targetValue = item.getAmount() != null && item.getAmount().compareTo(BigDecimal.ZERO) >= 0
+                    ? item.getAmount()
+                    : (product.getUnitPrice() != null && product.getUnitPrice().compareTo(BigDecimal.ZERO) > 0
+                            ? qtyForAmount.multiply(product.getUnitPrice()).setScale(2, RoundingMode.HALF_UP)
+                            : BigDecimal.ZERO);
             StockInventorySnapshot snapshot = StockInventorySnapshot.builder()
                     .session(session)
                     .product(product)
