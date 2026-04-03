@@ -8,7 +8,6 @@ import io.storeyes.storeyes_coffee.stock.entities.Article;
 import io.storeyes.storeyes_coffee.stock.entities.RecipeIngredient;
 import io.storeyes.storeyes_coffee.stock.entities.StockProduct;
 import io.storeyes.storeyes_coffee.stock.repositories.RecipeIngredientRepository;
-import io.storeyes.storeyes_coffee.stock.repositories.StockMovementRepository;
 import io.storeyes.storeyes_coffee.stock.repositories.StockProductRepository;
 import io.storeyes.storeyes_coffee.store.services.StoreService;
 import jakarta.transaction.Transactional;
@@ -26,7 +25,6 @@ public class RecipeIngredientService {
 
     private final RecipeIngredientRepository recipeIngredientRepository;
     private final StockProductRepository stockProductRepository;
-    private final StockMovementRepository stockMovementRepository;
     private final ArticleService articleService;
     private final StoreService storeService;
 
@@ -97,15 +95,32 @@ public class RecipeIngredientService {
         recipeIngredientRepository.deleteById(id);
     }
 
+    /**
+     * Recipe quantities are stored in base units. {@code unitPrice} is per counting unit when
+     * {@code basePerCountingUnit} is set and positive; otherwise per base unit — aligned with
+     * {@code StockMovementService} supplement / inventory amount logic.
+     */
+    private BigDecimal computeLineCostAtCurrentPrice(StockProduct p, BigDecimal quantityBase) {
+        if (quantityBase == null || quantityBase.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        BigDecimal unitPrice = p.getUnitPrice() != null ? p.getUnitPrice() : BigDecimal.ZERO;
+        if (unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        BigDecimal basePer = p.getBasePerCountingUnit();
+        BigDecimal qtyForAmount;
+        if (basePer != null && basePer.compareTo(BigDecimal.ZERO) > 0) {
+            qtyForAmount = quantityBase.divide(basePer, 4, RoundingMode.HALF_UP);
+        } else {
+            qtyForAmount = quantityBase;
+        }
+        return qtyForAmount.multiply(unitPrice).setScale(2, RoundingMode.HALF_UP);
+    }
+
     private RecipeIngredientResponse toResponse(RecipeIngredient ri) {
         StockProduct p = ri.getProduct();
-        Long storeId = p.getStore().getId();
-        BigDecimal unitPrice = p.getUnitPrice() != null ? p.getUnitPrice() : BigDecimal.ZERO;
-        BigDecimal avgCost = stockMovementRepository.getAveragePurchaseCostPerUnit(storeId, p.getId());
-        if (avgCost == null) {
-            avgCost = BigDecimal.ZERO;
-        }
-        avgCost = avgCost.setScale(4, RoundingMode.HALF_UP);
+        BigDecimal lineCost = computeLineCostAtCurrentPrice(p, ri.getQuantity());
         return RecipeIngredientResponse.builder()
                 .id(ri.getId())
                 .articleId(ri.getArticle().getId())
@@ -113,8 +128,7 @@ public class RecipeIngredientService {
                 .productName(p.getName())
                 .productUnit(p.getUnit())
                 .quantity(ri.getQuantity())
-                .productUnitPrice(unitPrice.setScale(4, RoundingMode.HALF_UP))
-                .averageUnitCost(avgCost)
+                .lineCostAtCurrentPrice(lineCost)
                 .createdAt(ri.getCreatedAt())
                 .build();
     }

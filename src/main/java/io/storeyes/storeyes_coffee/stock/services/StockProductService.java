@@ -5,9 +5,12 @@ import io.storeyes.storeyes_coffee.charges.repositories.VariableChargeSubCategor
 import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
 import io.storeyes.storeyes_coffee.stock.dto.CreateStockProductRequest;
 import io.storeyes.storeyes_coffee.stock.dto.StockProductResponse;
+import io.storeyes.storeyes_coffee.stock.dto.StockProductSupplierBrief;
 import io.storeyes.storeyes_coffee.stock.dto.UpdateStockProductRequest;
 import io.storeyes.storeyes_coffee.stock.entities.StockProduct;
+import io.storeyes.storeyes_coffee.stock.entities.SupplierStockProduct;
 import io.storeyes.storeyes_coffee.stock.repositories.StockProductRepository;
+import io.storeyes.storeyes_coffee.stock.repositories.SupplierStockProductRepository;
 import io.storeyes.storeyes_coffee.store.entities.Store;
 import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
 import io.storeyes.storeyes_coffee.store.services.StoreService;
@@ -16,7 +19,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,6 +34,7 @@ public class StockProductService {
     private final VariableChargeSubCategoryRepository variableChargeSubCategoryRepository;
     private final StoreRepository storeRepository;
     private final StoreService storeService;
+    private final SupplierStockProductRepository supplierStockProductRepository;
 
     private Long getStoreId() {
         String userId = KeycloakTokenUtils.getUserId();
@@ -59,7 +67,30 @@ public class StockProductService {
         } else {
             products = stockProductRepository.findByStoreIdOrderByNameAsc(storeId);
         }
-        return products.stream().map(this::toResponse).collect(Collectors.toList());
+        Map<Long, List<StockProductSupplierBrief>> suppliersByProductId = loadSuppliersByProductId(
+                products.stream().map(StockProduct::getId).collect(Collectors.toList()));
+        return products.stream()
+                .map(p -> toResponse(p, suppliersByProductId.getOrDefault(p.getId(), List.of())))
+                .collect(Collectors.toList());
+    }
+
+    private Map<Long, List<StockProductSupplierBrief>> loadSuppliersByProductId(Collection<Long> productIds) {
+        if (productIds == null || productIds.isEmpty()) {
+            return Map.of();
+        }
+        List<SupplierStockProduct> links =
+                supplierStockProductRepository.findByStockProduct_IdInWithSupplier(productIds);
+        Map<Long, List<StockProductSupplierBrief>> map = new HashMap<>();
+        for (SupplierStockProduct l : links) {
+            Long pid = l.getStockProduct().getId();
+            map.computeIfAbsent(pid, k -> new ArrayList<>())
+                    .add(StockProductSupplierBrief.builder()
+                            .id(l.getSupplier().getId())
+                            .name(l.getSupplier().getName())
+                            .isPreferred(l.getIsPreferred())
+                            .build());
+        }
+        return map;
     }
 
     private List<Long> getSubCategoryIdsWithChildren(Long subCategoryId) {
@@ -81,7 +112,9 @@ public class StockProductService {
         if (!product.getStore().getId().equals(storeId)) {
             throw new RuntimeException("Stock product not found with id: " + id);
         }
-        return toResponse(product);
+        Map<Long, List<StockProductSupplierBrief>> suppliersByProductId =
+                loadSuppliersByProductId(List.of(product.getId()));
+        return toResponse(product, suppliersByProductId.getOrDefault(product.getId(), List.of()));
     }
 
     /**
@@ -114,7 +147,7 @@ public class StockProductService {
                 .build();
 
         StockProduct saved = stockProductRepository.save(product);
-        return toResponse(saved);
+        return toResponse(saved, List.of());
     }
 
     /**
@@ -157,7 +190,9 @@ public class StockProductService {
         }
 
         StockProduct updated = stockProductRepository.save(product);
-        return toResponse(updated);
+        Map<Long, List<StockProductSupplierBrief>> suppliersByProductId =
+                loadSuppliersByProductId(List.of(updated.getId()));
+        return toResponse(updated, suppliersByProductId.getOrDefault(updated.getId(), List.of()));
     }
 
     /**
@@ -174,7 +209,7 @@ public class StockProductService {
         stockProductRepository.deleteById(id);
     }
 
-    private StockProductResponse toResponse(StockProduct product) {
+    private StockProductResponse toResponse(StockProduct product, List<StockProductSupplierBrief> suppliers) {
         return StockProductResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -187,6 +222,7 @@ public class StockProductService {
                 .basePerCountingUnit(product.getBasePerCountingUnit())
                 .createdAt(product.getCreatedAt())
                 .updatedAt(product.getUpdatedAt())
+                .suppliers(suppliers != null ? suppliers : List.of())
                 .build();
     }
 }

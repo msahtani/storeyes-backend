@@ -20,12 +20,9 @@ public class RecipeIngredientResponse {
     private String productUnit;
     private BigDecimal quantity;
     /**
-     * Catalog / reference unit price (MAD) from {@code stock_products.unit_price} — used as nominal “buy” price per base unit.
+     * Cost in MAD for this recipe line quantity using the stock product’s current {@code unit_price},
+     * with counting-unit conversion when {@code base_per_counting_unit} is set (same rules as purchases / supplements).
      */
-    private BigDecimal productUnitPrice;
-    /**
-     * Weighted average purchase cost per base unit (MAD) from PURCHASE + ADJUSTMENT movements.
-     */
-    private BigDecimal averageUnitCost;
+    private BigDecimal lineCostAtCurrentPrice;
     private LocalDateTime createdAt;
 }

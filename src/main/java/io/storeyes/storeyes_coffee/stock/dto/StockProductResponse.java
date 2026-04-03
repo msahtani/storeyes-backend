@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -24,4 +25,6 @@ public class StockProductResponse {
     private BigDecimal basePerCountingUnit;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    /** Active supplier links for this product (backoffice list/detail). */
+    private List<StockProductSupplierBrief> suppliers;
 }
