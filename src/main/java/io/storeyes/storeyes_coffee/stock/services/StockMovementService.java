@@ -146,17 +146,22 @@ public class StockMovementService {
             baseQty = baseQty.multiply(charge.getProduct().getBasePerCountingUnit());
         }
         movement.setQuantity(baseQty);
-        // Stock movement amount = quantity × unit price (for stock valuation).
-        // Charge service keeps the manual amount for accounting; stock uses calculated for consistency.
+        // Prefer the charge line unit price (actual purchase) for valuation; fall back to catalog product price.
+        BigDecimal unitPriceForValuation = null;
+        if (charge.getUnitPrice() != null && charge.getUnitPrice().compareTo(BigDecimal.ZERO) > 0) {
+            unitPriceForValuation = charge.getUnitPrice();
+        } else if (charge.getProduct() != null && charge.getProduct().getUnitPrice() != null
+                && charge.getProduct().getUnitPrice().compareTo(BigDecimal.ZERO) > 0) {
+            unitPriceForValuation = charge.getProduct().getUnitPrice();
+        }
         BigDecimal movementAmount = BigDecimal.ZERO;
-        if (charge.getProduct() != null && charge.getProduct().getUnitPrice() != null
-                && charge.getProduct().getUnitPrice().compareTo(BigDecimal.ZERO) > 0 && baseQty != null) {
+        if (unitPriceForValuation != null && baseQty != null && charge.getProduct() != null) {
             if (charge.getProduct().getBasePerCountingUnit() != null
                     && charge.getProduct().getBasePerCountingUnit().compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal countingQty = baseQty.divide(charge.getProduct().getBasePerCountingUnit(), 4, RoundingMode.HALF_UP);
-                movementAmount = countingQty.multiply(charge.getProduct().getUnitPrice()).setScale(2, RoundingMode.HALF_UP);
+                movementAmount = countingQty.multiply(unitPriceForValuation).setScale(2, RoundingMode.HALF_UP);
             } else {
-                movementAmount = baseQty.multiply(charge.getProduct().getUnitPrice()).setScale(2, RoundingMode.HALF_UP);
+                movementAmount = baseQty.multiply(unitPriceForValuation).setScale(2, RoundingMode.HALF_UP);
             }
         }
         movement.setAmount(movementAmount);

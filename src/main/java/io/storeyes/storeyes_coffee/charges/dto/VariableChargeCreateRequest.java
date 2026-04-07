@@ -53,4 +53,10 @@ public class VariableChargeCreateRequest {
 
     @Size(max = 500, message = "Purchase order URL must not exceed 500 characters")
     private String purchaseOrderUrl;
+
+    /**
+     * When true and this is a stock purchase with a product: update {@code stock_products.unit_price}
+     * to match this charge's purchase unit price after saving the charge.
+     */
+    private Boolean updateStockProductUnitPrice;
 }

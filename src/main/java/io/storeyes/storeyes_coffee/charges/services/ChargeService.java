@@ -596,6 +596,7 @@ public class ChargeService {
                 .build();
 
         VariableCharge savedCharge = variableChargeRepository.save(charge);
+        maybeApplyPurchasePriceToStockProduct(savedCharge, request.getUpdateStockProductUnitPrice());
         stockMovementService.syncPurchaseForVariableCharge(savedCharge);
         return toVariableChargeResponse(savedCharge);
     }
@@ -688,6 +689,7 @@ public class ChargeService {
         }
 
         VariableCharge updatedCharge = variableChargeRepository.save(charge);
+        maybeApplyPurchasePriceToStockProduct(updatedCharge, request.getUpdateStockProductUnitPrice());
         stockMovementService.syncPurchaseForVariableCharge(updatedCharge);
         return toVariableChargeResponse(updatedCharge);
     }
@@ -1743,6 +1745,26 @@ public class ChargeService {
                 .weekSalaries(filteredWeekSalaries)
                 .daysLeftSalary(emp.getDaysLeftSalary())
                 .build();
+    }
+
+    /**
+     * When the client opts in, persist the purchase unit price onto the stock product catalog row.
+     */
+    private void maybeApplyPurchasePriceToStockProduct(VariableCharge charge, Boolean updateCatalog) {
+        if (!Boolean.TRUE.equals(updateCatalog)) {
+            return;
+        }
+        if (charge == null || charge.getProduct() == null || charge.getUnitPrice() == null) {
+            return;
+        }
+        if (charge.getUnitPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+        Long productId = charge.getProduct().getId();
+        stockProductRepository.findById(productId).ifPresent(managed -> {
+            managed.setUnitPrice(charge.getUnitPrice().setScale(SCALE, RoundingMode.HALF_UP));
+            stockProductRepository.save(managed);
+        });
     }
 
     private VariableChargeResponse toVariableChargeResponse(VariableCharge charge) {
