@@ -300,24 +300,24 @@ public class StockMovementService {
     }
 
     /**
-     * Products that need restocking: real current quantity &lt;= minimal threshold.
-     * Includes products with no real quantity yet (null treated as 0).
-     * Also includes products with minimalThreshold = 0 when current = 0 (out of stock).
+     * Products that need restocking: estimated (system) quantity &lt;= minimal threshold.
+     * Estimated stock follows movements and sales (same basis as inventory “system” column), not physical count.
+     * Also includes products with minimalThreshold = 0 when estimated = 0 (out of stock).
      */
     public List<StockToBuyItemResponse> getToBuyList() {
         List<StockInventoryItemResponse> inventory = getInventorySummary();
         BigDecimal zero = BigDecimal.ZERO;
         return inventory.stream()
                 .filter(item -> {
-                    BigDecimal current = item.getRealQuantity() != null ? item.getRealQuantity() : zero;
+                    BigDecimal current = item.getEstimatedQuantity() != null ? item.getEstimatedQuantity() : zero;
                     BigDecimal threshold = item.getMinimalThreshold() != null ? item.getMinimalThreshold() : zero;
                     return (threshold.compareTo(zero) > 0 && current.compareTo(threshold) <= 0)
                             || (threshold.compareTo(zero) <= 0 && current.compareTo(zero) == 0);
                 })
                 .map(item -> {
-                    BigDecimal currentQty = item.getRealQuantity() != null ? item.getRealQuantity() : zero;
-                    BigDecimal currentCounting = item.getRealQuantityCounting() != null
-                            ? item.getRealQuantityCounting()
+                    BigDecimal currentQty = item.getEstimatedQuantity() != null ? item.getEstimatedQuantity() : zero;
+                    BigDecimal currentCounting = item.getEstimatedQuantityCounting() != null
+                            ? item.getEstimatedQuantityCounting()
                             : (item.getBasePerCountingUnit() != null && item.getBasePerCountingUnit().compareTo(zero) > 0
                                     ? currentQty.divide(item.getBasePerCountingUnit(), 4, RoundingMode.HALF_UP)
                                     : currentQty);
