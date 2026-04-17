@@ -108,6 +108,11 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, Lo
     /**
      * Real drift computed by createdAt timestamp (fixes same-day purchase vs snapshot ordering).
      * Includes PURCHASE + ADJUSTMENT + MANUAL_CONSUMPTION only (excludes ARTICLE_SALE).
+     * <p>
+     * Backfilled or SQL-seeded movements must use a {@code created_at} after the latest
+     * inventory snapshot's {@code created_at} for that product, or they affect estimated
+     * stock only (see {@link io.storeyes.storeyes_coffee.stock.services.StockMovementService#getInventorySummary}).
+     * Normal API-created purchases get {@code created_at} from persistence and behave correctly.
      */
     @Query("""
         SELECT COALESCE(SUM(m.quantity), 0) FROM StockMovement m

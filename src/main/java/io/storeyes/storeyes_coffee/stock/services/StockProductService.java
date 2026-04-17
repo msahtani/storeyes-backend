@@ -57,13 +57,13 @@ public class StockProductService {
         // its own products plus products of its children like Bar / Cuisine / Congelateur / Soda.
         if (subCategoryId != null && search != null && !search.isBlank()) {
             List<Long> relevantSubCategoryIds = getSubCategoryIdsWithChildren(subCategoryId);
-            products = stockProductRepository.findByStoreIdAndSubCategoryIdInAndNameContainingIgnoreCaseOrderByNameAsc(
+            products = stockProductRepository.findByStoreIdAndSubCategoryIdInAndSearchText(
                     storeId, relevantSubCategoryIds, search.trim());
         } else if (subCategoryId != null) {
             List<Long> relevantSubCategoryIds = getSubCategoryIdsWithChildren(subCategoryId);
             products = stockProductRepository.findByStoreIdAndSubCategoryIdInOrderByNameAsc(storeId, relevantSubCategoryIds);
         } else if (search != null && !search.isBlank()) {
-            products = stockProductRepository.findByStoreIdAndNameContainingIgnoreCaseOrderByNameAsc(storeId, search.trim());
+            products = stockProductRepository.findByStoreIdAndSearchText(storeId, search.trim());
         } else {
             products = stockProductRepository.findByStoreIdOrderByNameAsc(storeId);
         }
@@ -135,10 +135,15 @@ public class StockProductService {
         BigDecimal threshold = request.getMinimalThreshold() != null ? request.getMinimalThreshold() : BigDecimal.ZERO;
         BigDecimal unitPrice = request.getUnitPrice() != null ? request.getUnitPrice() : BigDecimal.ZERO;
 
+        String nameAr = request.getNameAr() != null && !request.getNameAr().isBlank()
+                ? request.getNameAr().trim()
+                : null;
+
         StockProduct product = StockProduct.builder()
                 .store(store)
                 .subCategory(subCategory)
                 .name(request.getName().trim())
+                .nameAr(nameAr)
                 .unit(request.getUnit().trim())
                 .unitPrice(unitPrice)
                 .minimalThreshold(threshold)
@@ -164,6 +169,9 @@ public class StockProductService {
 
         if (request.getName() != null) {
             product.setName(request.getName().trim());
+        }
+        if (request.getNameAr() != null) {
+            product.setNameAr(request.getNameAr().trim().isEmpty() ? null : request.getNameAr().trim());
         }
         if (request.getSubCategoryId() != null) {
             VariableChargeSubCategory subCategory = variableChargeSubCategoryRepository.findById(request.getSubCategoryId())
@@ -213,6 +221,7 @@ public class StockProductService {
         return StockProductResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
+                .nameAr(product.getNameAr())
                 .unit(product.getUnit())
                 .unitPrice(product.getUnitPrice())
                 .minimalThreshold(product.getMinimalThreshold())

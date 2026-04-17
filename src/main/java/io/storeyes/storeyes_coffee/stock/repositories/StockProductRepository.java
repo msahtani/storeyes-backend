@@ -2,6 +2,8 @@ package io.storeyes.storeyes_coffee.stock.repositories;
 
 import io.storeyes.storeyes_coffee.stock.entities.StockProduct;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -22,4 +24,19 @@ public interface StockProductRepository extends JpaRepository<StockProduct, Long
 
     List<StockProduct> findByStoreIdAndSubCategoryIdInAndNameContainingIgnoreCaseOrderByNameAsc(
             Long storeId, List<Long> subCategoryIds, String search);
+
+    @Query("SELECT p FROM StockProduct p WHERE p.store.id = :storeId AND ("
+            + "LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR "
+            + "(p.nameAr IS NOT NULL AND LOWER(p.nameAr) LIKE LOWER(CONCAT('%', :search, '%')))) "
+            + "ORDER BY p.name ASC")
+    List<StockProduct> findByStoreIdAndSearchText(@Param("storeId") Long storeId, @Param("search") String search);
+
+    @Query("SELECT p FROM StockProduct p WHERE p.store.id = :storeId AND p.subCategory.id IN :subIds AND ("
+            + "LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR "
+            + "(p.nameAr IS NOT NULL AND LOWER(p.nameAr) LIKE LOWER(CONCAT('%', :search, '%')))) "
+            + "ORDER BY p.name ASC")
+    List<StockProduct> findByStoreIdAndSubCategoryIdInAndSearchText(
+            @Param("storeId") Long storeId,
+            @Param("subIds") List<Long> subCategoryIds,
+            @Param("search") String search);
 }

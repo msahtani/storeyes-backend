@@ -18,6 +18,9 @@ public class UpdateStockProductRequest {
     @Size(max = 255, message = "Name must not exceed 255 characters")
     private String name;
 
+    @Size(max = 255, message = "Arabic name must not exceed 255 characters")
+    private String nameAr;
+
     private Long subCategoryId;
 
     @Size(max = 50, message = "Unit must not exceed 50 characters")

@@ -43,6 +43,10 @@ public class StockProduct {
     @Column(name = "name", nullable = false, length = 255)
     private String name;
 
+    /** Optional Arabic name for display and search (nullable). */
+    @Column(name = "name_ar", length = 255)
+    private String nameAr;
+
     @Column(name = "unit", nullable = false, length = 50)
     private String unit;
 

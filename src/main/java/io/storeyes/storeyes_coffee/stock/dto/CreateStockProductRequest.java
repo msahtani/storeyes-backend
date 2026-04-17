@@ -21,6 +21,9 @@ public class CreateStockProductRequest {
     @Size(max = 255, message = "Name must not exceed 255 characters")
     private String name;
 
+    @Size(max = 255, message = "Arabic name must not exceed 255 characters")
+    private String nameAr;
+
     @NotNull(message = "Sub-category is required")
     private Long subCategoryId;
 

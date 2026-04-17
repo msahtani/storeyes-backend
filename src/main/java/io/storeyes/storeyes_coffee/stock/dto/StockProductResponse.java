@@ -16,6 +16,8 @@ import java.util.List;
 public class StockProductResponse {
     private Long id;
     private String name;
+    /** Optional Arabic name (null if unset). */
+    private String nameAr;
     private String unit;
     private BigDecimal unitPrice;
     private BigDecimal minimalThreshold;
