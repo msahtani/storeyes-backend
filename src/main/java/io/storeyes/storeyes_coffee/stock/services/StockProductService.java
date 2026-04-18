@@ -9,6 +9,7 @@ import io.storeyes.storeyes_coffee.stock.dto.StockProductSupplierBrief;
 import io.storeyes.storeyes_coffee.stock.dto.UpdateStockProductRequest;
 import io.storeyes.storeyes_coffee.stock.entities.StockProduct;
 import io.storeyes.storeyes_coffee.stock.entities.SupplierStockProduct;
+import io.storeyes.storeyes_coffee.stock.repositories.RecipeIngredientRepository;
 import io.storeyes.storeyes_coffee.stock.repositories.StockProductRepository;
 import io.storeyes.storeyes_coffee.stock.repositories.SupplierStockProductRepository;
 import io.storeyes.storeyes_coffee.store.entities.Store;
@@ -35,6 +36,7 @@ public class StockProductService {
     private final StoreRepository storeRepository;
     private final StoreService storeService;
     private final SupplierStockProductRepository supplierStockProductRepository;
+    private final RecipeIngredientRepository recipeIngredientRepository;
 
     private Long getStoreId() {
         String userId = KeycloakTokenUtils.getUserId();
@@ -214,6 +216,8 @@ public class StockProductService {
         if (!product.getStore().getId().equals(storeId)) {
             throw new RuntimeException("Stock product not found with id: " + id);
         }
+        supplierStockProductRepository.deleteByStockProduct_Id(id);
+        recipeIngredientRepository.deleteByProduct_Id(id);
         stockProductRepository.deleteById(id);
     }
 

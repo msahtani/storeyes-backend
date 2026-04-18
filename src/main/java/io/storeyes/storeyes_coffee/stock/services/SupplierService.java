@@ -36,14 +36,27 @@ public class SupplierService {
         return storeService.getStoreByOwnerId(userId).getId();
     }
 
-    public List<SupplierSummaryResponse> listSuppliers(String search) {
+    /**
+     * @param includeInactive when true, returns active and inactive suppliers (backoffice). When false, only active
+     *                        (filters, mobile pickers).
+     */
+    public List<SupplierSummaryResponse> listSuppliers(String search, boolean includeInactive) {
         Long storeId = getStoreId();
         List<Supplier> suppliers;
-        if (search != null && !search.isBlank()) {
-            suppliers = supplierRepository.findByStoreIdAndIsActiveTrueAndNameContainingIgnoreCaseOrderByNameAsc(
-                    storeId, search.trim());
+        if (!includeInactive) {
+            if (search != null && !search.isBlank()) {
+                suppliers = supplierRepository.findByStoreIdAndIsActiveTrueAndNameContainingIgnoreCaseOrderByNameAsc(
+                        storeId, search.trim());
+            } else {
+                suppliers = supplierRepository.findByStoreIdAndIsActiveTrueOrderByNameAsc(storeId);
+            }
         } else {
-            suppliers = supplierRepository.findByStoreIdAndIsActiveTrueOrderByNameAsc(storeId);
+            if (search != null && !search.isBlank()) {
+                suppliers = supplierRepository.findByStoreIdAndNameContainingIgnoreCaseOrderByIsActiveDescNameAsc(
+                        storeId, search.trim());
+            } else {
+                suppliers = supplierRepository.findByStoreIdOrderByIsActiveDescNameAsc(storeId);
+            }
         }
         if (suppliers.isEmpty()) {
             return List.of();
@@ -70,9 +83,6 @@ public class SupplierService {
         Long storeId = getStoreId();
         Supplier supplier = supplierRepository.findByIdAndStore_Id(id, storeId)
                 .orElseThrow(() -> new RuntimeException("Supplier not found with id: " + id));
-        if (!Boolean.TRUE.equals(supplier.getIsActive())) {
-            throw new RuntimeException("Supplier not found with id: " + id);
-        }
         List<SupplierStockProduct> links =
                 supplierStockProductRepository.findBySupplier_IdOrderByStockProduct_NameAsc(id);
         List<SupplierStockLinkResponse> stockRows = links.stream()
@@ -159,15 +169,15 @@ public class SupplierService {
     }
 
     /**
-     * Soft-deactivate supplier (keeps history; links remain until explicitly cleared or supplier removed later).
+     * Permanently delete supplier and all product links (DB cascade also removes link rows).
      */
     @Transactional
-    public void deactivateSupplier(Long id) {
+    public void deleteSupplierPermanently(Long id) {
         Long storeId = getStoreId();
         Supplier supplier = supplierRepository.findByIdAndStore_Id(id, storeId)
                 .orElseThrow(() -> new RuntimeException("Supplier not found with id: " + id));
-        supplier.setIsActive(false);
-        supplierRepository.save(supplier);
+        supplierStockProductRepository.deleteBySupplier_Id(id);
+        supplierRepository.delete(supplier);
     }
 
     @Transactional
@@ -175,9 +185,6 @@ public class SupplierService {
         Long storeId = getStoreId();
         Supplier supplier = supplierRepository.findByIdAndStore_Id(supplierId, storeId)
                 .orElseThrow(() -> new RuntimeException("Supplier not found with id: " + supplierId));
-        if (!Boolean.TRUE.equals(supplier.getIsActive())) {
-            throw new RuntimeException("Supplier is inactive");
-        }
         List<SupplierStockProductItemRequest> items = request.getItems();
         if (items == null) {
             items = List.of();

@@ -27,4 +27,6 @@ public interface RecipeIngredientRepository extends JpaRepository<RecipeIngredie
     boolean existsByArticleIdAndProductId(Long articleId, Long productId);
 
     void deleteByArticleIdAndProductId(Long articleId, Long productId);
+
+    void deleteByProduct_Id(Long productId);
 }

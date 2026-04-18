@@ -15,13 +15,15 @@ public interface SupplierStockProductRepository extends JpaRepository<SupplierSt
 
     void deleteBySupplier_Id(Long supplierId);
 
+    void deleteByStockProduct_Id(Long stockProductId);
+
     long countBySupplier_Id(Long supplierId);
 
     @Query("""
             SELECT l FROM SupplierStockProduct l
             JOIN FETCH l.supplier s
             JOIN FETCH l.stockProduct p
-            WHERE p.id = :productId AND s.store.id = :storeId
+            WHERE p.id = :productId AND s.store.id = :storeId AND s.isActive = true
             ORDER BY s.name ASC
             """)
     List<SupplierStockProduct> findByStoreIdAndStockProductId(
@@ -49,7 +51,7 @@ public interface SupplierStockProductRepository extends JpaRepository<SupplierSt
             SELECT l FROM SupplierStockProduct l
             JOIN FETCH l.supplier s
             JOIN FETCH l.stockProduct p
-            WHERE p.id IN :productIds
+            WHERE p.id IN :productIds AND s.isActive = true
             ORDER BY p.id ASC, s.name ASC
             """)
     List<SupplierStockProduct> findByStockProduct_IdInWithSupplier(@Param("productIds") Collection<Long> productIds);

@@ -12,5 +12,9 @@ public interface SupplierRepository extends JpaRepository<Supplier, Long> {
 
     List<Supplier> findByStoreIdAndIsActiveTrueAndNameContainingIgnoreCaseOrderByNameAsc(Long storeId, String search);
 
+    List<Supplier> findByStoreIdOrderByIsActiveDescNameAsc(Long storeId);
+
+    List<Supplier> findByStoreIdAndNameContainingIgnoreCaseOrderByIsActiveDescNameAsc(Long storeId, String name);
+
     Optional<Supplier> findByIdAndStore_Id(Long id, Long storeId);
 }

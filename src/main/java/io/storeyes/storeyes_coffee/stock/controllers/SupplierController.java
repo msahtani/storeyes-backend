@@ -20,8 +20,10 @@ public class SupplierController {
     private final SupplierService supplierService;
 
     @GetMapping
-    public ResponseEntity<Map<String, Object>> listSuppliers(@RequestParam(required = false) String search) {
-        List<SupplierSummaryResponse> data = supplierService.listSuppliers(search);
+    public ResponseEntity<Map<String, Object>> listSuppliers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "false") boolean includeInactive) {
+        List<SupplierSummaryResponse> data = supplierService.listSuppliers(search, includeInactive);
         Map<String, Object> response = new HashMap<>();
         response.put("data", data);
         response.put("message", "Suppliers retrieved successfully");
@@ -62,8 +64,8 @@ public class SupplierController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deactivateSupplier(@PathVariable Long id) {
-        supplierService.deactivateSupplier(id);
+    public ResponseEntity<Void> deleteSupplier(@PathVariable Long id) {
+        supplierService.deleteSupplierPermanently(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
