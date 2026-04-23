@@ -1,6 +1,5 @@
 package io.storeyes.storeyes_coffee.stock.dto;
 
-import io.storeyes.storeyes_coffee.stock.entities.SupplierOrderStatus;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -26,9 +25,6 @@ public class UpdateSupplierOrderRequest {
     private String supplierNameSnapshot;
 
     private LocalDate orderDate;
-
-    /** When set, only DRAFT→SENT is allowed (service validates). */
-    private SupplierOrderStatus status;
 
     @NotEmpty(message = "At least one order line is required")
     @Valid

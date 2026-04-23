@@ -140,7 +140,7 @@ public class SupplierOrderService {
                 .supplier(supplier)
                 .supplierNameSnapshot(nameSnapshot)
                 .messageText(request.getMessageText() != null ? request.getMessageText() : "")
-                .status(SupplierOrderStatus.DRAFT)
+                .status(SupplierOrderStatus.PENDING)
                 .orderDate(orderDate)
                 .build();
 
@@ -155,11 +155,8 @@ public class SupplierOrderService {
         Long storeId = getStoreId();
         SupplierOrder order = supplierOrderRepository.findFetchedByIdAndStoreId(id, storeId)
                 .orElseThrow(() -> new IllegalArgumentException("Supplier order not found"));
-        if (order.getStatus() == SupplierOrderStatus.CONVERTED) {
+        if (order.getConvertedAt() != null) {
             throw new IllegalArgumentException("Cannot update a converted supplier order");
-        }
-        if (request.getStatus() != null && request.getStatus() == SupplierOrderStatus.CONVERTED) {
-            throw new IllegalArgumentException("Invalid status");
         }
 
         if (request.getOrderDate() != null) {
@@ -185,16 +182,6 @@ public class SupplierOrderService {
             }
         }
 
-        if (request.getStatus() != null) {
-            if (request.getStatus() == SupplierOrderStatus.SENT && order.getStatus() == SupplierOrderStatus.DRAFT) {
-                order.setStatus(SupplierOrderStatus.SENT);
-            } else if (request.getStatus() == SupplierOrderStatus.DRAFT && order.getStatus() == SupplierOrderStatus.SENT) {
-                order.setStatus(SupplierOrderStatus.DRAFT);
-            } else if (request.getStatus() != order.getStatus()) {
-                throw new IllegalArgumentException("Invalid status transition");
-            }
-        }
-
         order.getLines().clear();
         order.getLines().addAll(buildLines(order, storeId, request.getLines()));
         SupplierOrder saved = supplierOrderRepository.save(order);
@@ -206,10 +193,26 @@ public class SupplierOrderService {
         Long storeId = getStoreId();
         SupplierOrder order = supplierOrderRepository.findByIdAndStore_Id(id, storeId)
                 .orElseThrow(() -> new IllegalArgumentException("Supplier order not found"));
-        if (order.getStatus() == SupplierOrderStatus.CONVERTED) {
+        if (order.getConvertedAt() != null) {
             throw new IllegalArgumentException("Cannot delete a converted supplier order");
         }
         supplierOrderRepository.delete(order);
+    }
+
+    @Transactional
+    public SupplierOrderDetailResponse setStatus(Long id, SupplierOrderStatus targetStatus) {
+        Long storeId = getStoreId();
+        SupplierOrder order = supplierOrderRepository.findFetchedByIdAndStoreId(id, storeId)
+                .orElseThrow(() -> new IllegalArgumentException("Supplier order not found"));
+        if (order.getConvertedAt() != null) {
+            throw new IllegalArgumentException("Cannot change status of a converted supplier order");
+        }
+        if (targetStatus == SupplierOrderStatus.PENDING) {
+            throw new IllegalArgumentException("Invalid status transition");
+        }
+        order.setStatus(targetStatus);
+        SupplierOrder saved = supplierOrderRepository.save(order);
+        return toDetailResponse(supplierOrderRepository.findFetchedByIdAndStoreId(saved.getId(), storeId).orElse(saved));
     }
 
     @Transactional
@@ -217,7 +220,7 @@ public class SupplierOrderService {
         Long storeId = getStoreId();
         SupplierOrder order = supplierOrderRepository.findFetchedByIdAndStoreId(id, storeId)
                 .orElseThrow(() -> new IllegalArgumentException("Supplier order not found"));
-        if (order.getStatus() == SupplierOrderStatus.CONVERTED) {
+        if (order.getConvertedAt() != null) {
             throw new IllegalArgumentException("Order was already converted to expenses");
         }
         if (order.getLines() == null || order.getLines().isEmpty()) {
@@ -256,7 +259,6 @@ public class SupplierOrderService {
             chargeService.createVariableCharge(vc);
         }
 
-        order.setStatus(SupplierOrderStatus.CONVERTED);
         order.setConvertedAt(LocalDateTime.now());
         supplierOrderRepository.save(order);
         return toDetailResponse(supplierOrderRepository.findFetchedByIdAndStoreId(id, storeId).orElse(order));

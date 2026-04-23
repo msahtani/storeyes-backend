@@ -1,6 +1,7 @@
 package io.storeyes.storeyes_coffee.stock.controllers;
 
 import io.storeyes.storeyes_coffee.stock.dto.*;
+import io.storeyes.storeyes_coffee.stock.entities.SupplierOrderStatus;
 import io.storeyes.storeyes_coffee.stock.services.SupplierOrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -97,6 +98,34 @@ public class SupplierOrderController {
         } catch (IllegalArgumentException e) {
             return badRequest(e.getMessage());
         } catch (IllegalStateException e) {
+            return badRequest(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/validate")
+    public ResponseEntity<Map<String, Object>> validateOrder(@PathVariable Long id) {
+        try {
+            SupplierOrderDetailResponse data = supplierOrderService.setStatus(id, SupplierOrderStatus.VALID);
+            Map<String, Object> response = new HashMap<>();
+            response.put("data", data);
+            response.put("message", "Supplier order validated successfully");
+            response.put("timestamp", java.time.OffsetDateTime.now());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return badRequest(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<Map<String, Object>> rejectOrder(@PathVariable Long id) {
+        try {
+            SupplierOrderDetailResponse data = supplierOrderService.setStatus(id, SupplierOrderStatus.REJECTED);
+            Map<String, Object> response = new HashMap<>();
+            response.put("data", data);
+            response.put("message", "Supplier order rejected successfully");
+            response.put("timestamp", java.time.OffsetDateTime.now());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
             return badRequest(e.getMessage());
         }
     }
