@@ -2,6 +2,7 @@ package io.storeyes.storeyes_coffee.auth.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.storeyes.storeyes_coffee.auth.config.KeycloakAdminProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,7 +17,8 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 /**
- * Sets a user's password via Keycloak Admin REST API (client credentials).
+ * Sets a user's password via Keycloak Admin REST API (OAuth2 client_credentials).
+ * Configure {@link KeycloakAdminProperties} under {@code app.keycloak-admin.*}.
  */
 @Service
 @Slf4j
@@ -25,28 +27,13 @@ public class KeycloakPasswordAdminService {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final KeycloakAdminProperties adminProperties;
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
     private String keycloakIssuerUri;
 
-    @Value("${app.keycloak-admin.enabled:false}")
-    private boolean adminEnabled;
-
-    @Value("${app.keycloak-admin.client-id:}")
-    private String adminClientId;
-
-    @Value("${app.keycloak-admin.client-secret:}")
-    private String adminClientSecret;
-
-    @Value("${app.keycloak-admin.auth-realm:storeyes}")
-    private String adminAuthRealm;
-
     public boolean isEnabled() {
-        return adminEnabled
-                && adminClientId != null
-                && !adminClientId.isBlank()
-                && adminClientSecret != null
-                && !adminClientSecret.isBlank();
+        return adminProperties.isPasswordResetAdminReady();
     }
 
     public void resetPassword(String keycloakUserId, String newPassword) {
@@ -54,7 +41,7 @@ public class KeycloakPasswordAdminService {
             throw new IllegalStateException("Keycloak admin API is not configured");
         }
         String base = keycloakServerBase();
-        String usersRealm = extractRealm(keycloakIssuerUri);
+        String usersRealm = resolveUsersRealm();
         String token = fetchServiceAccountToken(base);
         String url = base + "/admin/realms/" + usersRealm + "/users/" + keycloakUserId + "/reset-password";
 
@@ -80,13 +67,13 @@ public class KeycloakPasswordAdminService {
     }
 
     private String fetchServiceAccountToken(String base) {
-        String tokenUrl = base + "/realms/" + adminAuthRealm + "/protocol/openid-connect/token";
+        String tokenUrl = base + "/realms/" + adminProperties.getAuthRealm() + "/protocol/openid-connect/token";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "client_credentials");
-        form.add("client_id", adminClientId);
-        form.add("client_secret", adminClientSecret);
+        form.add("client_id", adminProperties.getClientId());
+        form.add("client_secret", adminProperties.getClientSecret());
         ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                 tokenUrl,
                 HttpMethod.POST,
@@ -100,11 +87,26 @@ public class KeycloakPasswordAdminService {
     }
 
     private String keycloakServerBase() {
+        String override = adminProperties.getServerUrl();
+        if (override != null && !override.isBlank()) {
+            String u = override.trim();
+            return u.endsWith("/") ? u.substring(0, u.length() - 1) : u;
+        }
         int idx = keycloakIssuerUri.indexOf("/realms/");
         if (idx <= 0) {
-            return keycloakIssuerUri.endsWith("/") ? keycloakIssuerUri.substring(0, keycloakIssuerUri.length() - 1) : keycloakIssuerUri;
+            return keycloakIssuerUri.endsWith("/")
+                    ? keycloakIssuerUri.substring(0, keycloakIssuerUri.length() - 1)
+                    : keycloakIssuerUri;
         }
         return keycloakIssuerUri.substring(0, idx);
+    }
+
+    private String resolveUsersRealm() {
+        String configured = adminProperties.getUsersRealm();
+        if (configured != null && !configured.isBlank()) {
+            return configured.trim();
+        }
+        return extractRealm(keycloakIssuerUri);
     }
 
     static String extractRealm(String issuerUri) {
