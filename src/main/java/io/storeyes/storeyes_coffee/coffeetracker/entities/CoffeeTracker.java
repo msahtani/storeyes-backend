@@ -36,7 +36,6 @@ public class CoffeeTracker {
 
     @ManyToOne
     @JoinColumn(name = "store_id", nullable = false)
-    @JsonIgnoreProperties({"owner"})
     private Store store;
 
 

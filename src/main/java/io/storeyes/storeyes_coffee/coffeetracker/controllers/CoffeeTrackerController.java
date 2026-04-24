@@ -1,6 +1,6 @@
 package io.storeyes.storeyes_coffee.coffeetracker.controllers;
 
-import io.storeyes.storeyes_coffee.coffeetracker.entities.CoffeeTracker;
+import io.storeyes.storeyes_coffee.coffeetracker.dto.CoffeeTrackerResponse;
 import io.storeyes.storeyes_coffee.coffeetracker.services.CoffeeTrackerService;
 import io.storeyes.storeyes_coffee.security.CurrentStoreContext;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ public class CoffeeTrackerController {
      * GET /api/coffee-tracker?date={yyyy-MM-dd}
      */
     @GetMapping
-    public ResponseEntity<List<CoffeeTracker>> getCompletedByStoreAndDate(
+    public ResponseEntity<List<CoffeeTrackerResponse>> getCompletedByStoreAndDate(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         Long storeId = CurrentStoreContext.getCurrentStoreId();
         if (storeId == null) {

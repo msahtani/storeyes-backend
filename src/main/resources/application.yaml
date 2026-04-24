@@ -37,6 +37,34 @@ spring:
           jwk-set-uri: ${KEYCLOAK_JWKS_URI:http://15.216.37.183/realms/storeyes/protocol/openid-connect/certs}
           audience: ${KEYCLOAK_AUDIENCE:storeyes-mobile}
 
+  # Outbound email (Gmail). Do not put the app password here — use SPRING_MAIL_PASSWORD (env / IDE / server).
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: storeyes.morocco@gmail.com
+    password: ${SPRING_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+
+app:
+  password-reset:
+    pepper: ${PASSWORD_RESET_PEPPER:storeyes-dev-pepper-change-in-production}
+    code-ttl-minutes: ${PASSWORD_RESET_CODE_TTL_MINUTES:15}
+    reset-token-ttl-minutes: ${PASSWORD_RESET_TOKEN_TTL_MINUTES:30}
+    from-address: storeyes.morocco@gmail.com
+  keycloak-admin:
+    enabled: ${KEYCLOAK_ADMIN_ENABLED:false}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:}
+    client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:}
+    auth-realm: ${KEYCLOAK_ADMIN_AUTH_REALM:storeyes}
+
 logging:
   level:
     root: INFO

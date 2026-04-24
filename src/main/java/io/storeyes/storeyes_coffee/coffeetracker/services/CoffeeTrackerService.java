@@ -1,6 +1,6 @@
 package io.storeyes.storeyes_coffee.coffeetracker.services;
 
-import io.storeyes.storeyes_coffee.coffeetracker.entities.CoffeeTracker;
+import io.storeyes.storeyes_coffee.coffeetracker.dto.CoffeeTrackerResponse;
 import io.storeyes.storeyes_coffee.coffeetracker.entities.TrackerStatus;
 import io.storeyes.storeyes_coffee.coffeetracker.repositories.CoffeeTrackerRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,10 +16,14 @@ public class CoffeeTrackerService {
 
     private final CoffeeTrackerRepository coffeeTrackerRepository;
 
-    public List<CoffeeTracker> findCompletedByStoreAndDate(Long storeId, LocalDate date) {
+    public List<CoffeeTrackerResponse> findCompletedByStoreAndDate(Long storeId, LocalDate date) {
         LocalDateTime dayStart = date.atStartOfDay();
         LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
-        return coffeeTrackerRepository.findByStoreIdAndStatusAndTimestampOnLocalDate(
-                storeId, TrackerStatus.COMPLETED, dayStart, dayEnd);
+        return coffeeTrackerRepository
+                .findByStoreIdAndStatusAndTimestampOnLocalDate(
+                        storeId, TrackerStatus.COMPLETED, dayStart, dayEnd)
+                .stream()
+                .map(CoffeeTrackerResponse::from)
+                .toList();
     }
 }
