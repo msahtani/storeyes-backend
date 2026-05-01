@@ -10,6 +10,7 @@ import io.storeyes.storeyes_coffee.stock.repositories.SupplierRepository;
 import io.storeyes.storeyes_coffee.stock.repositories.SupplierStockProductRepository;
 import io.storeyes.storeyes_coffee.store.entities.Store;
 import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
+import io.storeyes.storeyes_coffee.store.services.DemoStoreDataSourceResolver;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class SupplierService {
     private final SupplierStockProductRepository supplierStockProductRepository;
     private final StockProductRepository stockProductRepository;
     private final StoreRepository storeRepository;
+    private final DemoStoreDataSourceResolver demoStoreDataSourceResolver;
 
     private Long getStoreId() {
         return CurrentStoreContext.requireCurrentStoreId();
@@ -36,20 +38,21 @@ public class SupplierService {
      */
     public List<SupplierSummaryResponse> listSuppliers(String search, boolean includeInactive) {
         Long storeId = getStoreId();
+        Long dataStoreId = demoStoreDataSourceResolver.resolveStockDataStoreId(storeId);
         List<Supplier> suppliers;
         if (!includeInactive) {
             if (search != null && !search.isBlank()) {
                 suppliers = supplierRepository.findByStoreIdAndIsActiveTrueAndNameContainingIgnoreCaseOrderByNameAsc(
-                        storeId, search.trim());
+                        dataStoreId, search.trim());
             } else {
-                suppliers = supplierRepository.findByStoreIdAndIsActiveTrueOrderByNameAsc(storeId);
+                suppliers = supplierRepository.findByStoreIdAndIsActiveTrueOrderByNameAsc(dataStoreId);
             }
         } else {
             if (search != null && !search.isBlank()) {
                 suppliers = supplierRepository.findByStoreIdAndNameContainingIgnoreCaseOrderByIsActiveDescNameAsc(
-                        storeId, search.trim());
+                        dataStoreId, search.trim());
             } else {
-                suppliers = supplierRepository.findByStoreIdOrderByIsActiveDescNameAsc(storeId);
+                suppliers = supplierRepository.findByStoreIdOrderByIsActiveDescNameAsc(dataStoreId);
             }
         }
         if (suppliers.isEmpty()) {
@@ -75,7 +78,8 @@ public class SupplierService {
 
     public SupplierDetailResponse getSupplierById(Long id) {
         Long storeId = getStoreId();
-        Supplier supplier = supplierRepository.findByIdAndStore_Id(id, storeId)
+        Long dataStoreId = demoStoreDataSourceResolver.resolveStockDataStoreId(storeId);
+        Supplier supplier = supplierRepository.findByIdAndStore_Id(id, dataStoreId)
                 .orElseThrow(() -> new RuntimeException("Supplier not found with id: " + id));
         List<SupplierStockProduct> links =
                 supplierStockProductRepository.findBySupplier_IdOrderByStockProduct_NameAsc(id);
@@ -222,12 +226,13 @@ public class SupplierService {
 
     public List<SupplierForProductResponse> listSuppliersForStockProduct(Long stockProductId) {
         Long storeId = getStoreId();
+        Long dataStoreId = demoStoreDataSourceResolver.resolveStockDataStoreId(storeId);
         StockProduct product = stockProductRepository.findById(stockProductId)
                 .orElseThrow(() -> new RuntimeException("Stock product not found with id: " + stockProductId));
-        if (!product.getStore().getId().equals(storeId)) {
+        if (!product.getStore().getId().equals(dataStoreId)) {
             throw new RuntimeException("Stock product not found with id: " + stockProductId);
         }
-        return supplierStockProductRepository.findByStoreIdAndStockProductId(storeId, stockProductId).stream()
+        return supplierStockProductRepository.findByStoreIdAndStockProductId(dataStoreId, stockProductId).stream()
                 .map(l -> SupplierForProductResponse.builder()
                         .supplierId(l.getSupplier().getId())
                         .supplierName(l.getSupplier().getName())
