@@ -615,6 +615,7 @@ public class ChargeService {
      * Get all variable charges with optional filtering
      * Filters by authenticated user's store
      */
+    @Transactional
     public List<VariableChargeResponse> getAllVariableCharges(LocalDate startDate, LocalDate endDate, String category) {
         Long storeId = getChargesDataStoreId();
         List<VariableCharge> charges;
@@ -646,6 +647,7 @@ public class ChargeService {
      * Get variable charge by ID
      * Verifies charge belongs to authenticated user's store
      */
+    @Transactional
     public VariableChargeResponse getVariableChargeById(Long id) {
         Long storeId = getChargesDataStoreId();
         
