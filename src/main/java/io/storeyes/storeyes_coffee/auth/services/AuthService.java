@@ -3,6 +3,7 @@ package io.storeyes.storeyes_coffee.auth.services;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.storeyes.storeyes_coffee.auth.dto.AuthResponse;
+import io.storeyes.storeyes_coffee.auth.dto.FeatureAccessDTO;
 import io.storeyes.storeyes_coffee.auth.dto.MultiStoreAuthResponse;
 import io.storeyes.storeyes_coffee.auth.dto.UpdateProfileRequest;
 import io.storeyes.storeyes_coffee.auth.dto.UserInfoDTO;
@@ -10,6 +11,7 @@ import io.storeyes.storeyes_coffee.auth.entities.UserInfo;
 import io.storeyes.storeyes_coffee.auth.exceptions.TokenRefreshException;
 import io.storeyes.storeyes_coffee.auth.config.KeycloakAdminProperties;
 import io.storeyes.storeyes_coffee.auth.repositories.UserInfoRepository;
+import io.storeyes.storeyes_coffee.clientgw.services.ClientGwLookupService;
 import io.storeyes.storeyes_coffee.rolemapping.repositories.RoleMappingRepository;
 import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +45,8 @@ public class AuthService {
     private final ObjectMapper objectMapper;
     private final KeycloakAdminProperties keycloakAdminProperties;
     private final KeycloakPasswordAdminService keycloakPasswordAdminService;
+    private final ClientGwLookupService clientGwLookupService;
+    private final FeatureAccessResolver featureAccessResolver;
 
     @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}")
     private String keycloakIssuerUri;
@@ -63,13 +67,17 @@ public class AuthService {
             RoleMappingRepository roleMappingRepository,
             JwtDecoder jwtDecoder,
             KeycloakAdminProperties keycloakAdminProperties,
-            KeycloakPasswordAdminService keycloakPasswordAdminService) {
+            KeycloakPasswordAdminService keycloakPasswordAdminService,
+            ClientGwLookupService clientGwLookupService,
+            FeatureAccessResolver featureAccessResolver) {
         this.restTemplate = restTemplate;
         this.userInfoRepository = userInfoRepository;
         this.roleMappingRepository = roleMappingRepository;
         this.jwtDecoder = jwtDecoder;
         this.keycloakAdminProperties = keycloakAdminProperties;
         this.keycloakPasswordAdminService = keycloakPasswordAdminService;
+        this.clientGwLookupService = clientGwLookupService;
+        this.featureAccessResolver = featureAccessResolver;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -185,6 +193,7 @@ public class AuthService {
                                 .role(rm.getRole().getName())
                                 .feedbackOnlyMode(rm.getStore().isFeedbackOnlyMode())
                                 .staffOnlyMode(rm.getStore().isStaffOnlyMode())
+                                .features(resolveFeatures(rm.getStore().getId(), userId))
                                 .build())
                         .collect(java.util.stream.Collectors.toList());
             }
@@ -455,6 +464,21 @@ public class AuthService {
                 .lastName(request.getLastName())
                 .preferredUsername(request.getUsername())
                 .build();
+    }
+
+    /**
+     * Resolves the concrete features a user can access at a store: fetches the user's role +
+     * featurePolicy for that store and the store's granted feature sets from the upstream
+     * client-gw gateway (st-admin-back), then intersects them. Fails soft to an empty list if
+     * the user has no client-gw membership at this store, or the gateway is unreachable —
+     * {@link ClientGwLookupService} already logs the underlying reason.
+     */
+    private List<FeatureAccessDTO> resolveFeatures(Long storeId, String userId) {
+        return clientGwLookupService.fetchClient(storeId, userId)
+                .map(client -> featureAccessResolver.resolve(
+                        client.getFeaturePolicy(),
+                        clientGwLookupService.fetchFeatureSets(storeId)))
+                .orElse(List.of());
     }
 
     /**

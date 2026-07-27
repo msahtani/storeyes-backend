@@ -30,5 +30,6 @@ public class MultiStoreAuthResponse {
         private String role;
         private boolean feedbackOnlyMode;
         private boolean staffOnlyMode;
+        private List<FeatureAccessDTO> features;
     }
 }
