@@ -880,11 +880,14 @@ public class ChargeService {
 
     /**
      * Get all variable charge main categories for the authenticated user's store.
+     * The "stock" category is excluded: it is only ever assigned to charges through
+     * the dedicated stock/product flow, never picked directly from this list.
      * GET /api/charges/variable/main-categories
      */
     public List<VariableChargeMainCategoryResponse> getVariableChargeMainCategories() {
         Long storeId = getChargesDataStoreId();
         return variableChargeMainCategoryRepository.findByStoreIdAndActiveTrueOrderBySortOrderAsc(storeId).stream()
+                .filter(category -> !"stock".equalsIgnoreCase(category.getCode()))
                 .map(this::toVariableChargeMainCategoryResponse)
                 .collect(Collectors.toList());
     }
