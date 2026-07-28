@@ -1,8 +1,9 @@
 package io.storeyes.storeyes_coffee.clientgw.services;
 
 import io.storeyes.storeyes_coffee.clientgw.config.ClientGwProperties;
-import io.storeyes.storeyes_coffee.clientgw.dto.CgClientDTO;
 import io.storeyes.storeyes_coffee.clientgw.dto.CgFeatureSetDTO;
+import io.storeyes.storeyes_coffee.clientgw.dto.CgPackLayoutDTO;
+import io.storeyes.storeyes_coffee.clientgw.dto.CgRoleDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.ParameterizedTypeReference;
@@ -17,7 +18,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Server-side reads from the upstream client-gw gateway (panel.storeyes.io, st-admin-back),
@@ -46,20 +46,28 @@ public class ClientGwLookupService {
         this.clientGwProperties = clientGwProperties;
     }
 
-    /** The client's assigned role + featurePolicy at the given store, or empty if not found/unreachable. */
-    public Optional<CgClientDTO> fetchClient(Long storeId, String userId) {
-        URI uri = URI.create(clientGwProperties.getBaseUrl() + "/clients/" + userId);
+    /**
+     * The roles visible to the given store — global roles plus that store's own custom roles,
+     * each with its featurePolicy. Unlike a per-user "client" membership (a separate portal-user
+     * concept in st-admin-back that app users are never provisioned into), this only requires the
+     * role itself to exist upstream, which is the assumption that actually holds in practice.
+     */
+    public List<CgRoleDTO> fetchRoles(Long storeId) {
+        URI uri = URI.create(clientGwProperties.getBaseUrl() + "/roles");
         try {
-            ResponseEntity<CgClientDTO> response = restTemplate.exchange(
-                    uri, HttpMethod.GET, new HttpEntity<>(headers(storeId)), CgClientDTO.class);
-            return Optional.ofNullable(response.getBody());
+            ResponseEntity<List<CgRoleDTO>> response = restTemplate.exchange(
+                    uri, HttpMethod.GET, new HttpEntity<>(headers(storeId)),
+                    new ParameterizedTypeReference<>() {
+                    });
+            List<CgRoleDTO> body = response.getBody();
+            return body != null ? body : List.of();
         } catch (HttpStatusCodeException e) {
-            log.warn("client-gw client lookup failed (store {}, user {}): {} {}",
-                    storeId, userId, e.getStatusCode(), e.getResponseBodyAsString());
-            return Optional.empty();
+            log.warn("client-gw roles lookup failed (store {}): {} {}",
+                    storeId, e.getStatusCode(), e.getResponseBodyAsString());
+            return List.of();
         } catch (ResourceAccessException e) {
-            log.warn("client-gw client lookup unreachable (store {}, user {}): {}", storeId, userId, e.getMessage());
-            return Optional.empty();
+            log.warn("client-gw roles lookup unreachable (store {}): {}", storeId, e.getMessage());
+            return List.of();
         }
     }
 
@@ -80,6 +88,24 @@ public class ClientGwLookupService {
         } catch (ResourceAccessException e) {
             log.warn("client-gw feature-sets lookup unreachable (store {}): {}", storeId, e.getMessage());
             return List.of();
+        }
+    }
+
+    /** The given store's Pack home screen / nav bar layout, or null mobileLayout if none/unreachable. */
+    public CgPackLayoutDTO fetchPackLayout(Long storeId) {
+        URI uri = URI.create(clientGwProperties.getBaseUrl() + "/pack");
+        try {
+            ResponseEntity<CgPackLayoutDTO> response = restTemplate.exchange(
+                    uri, HttpMethod.GET, new HttpEntity<>(headers(storeId)), CgPackLayoutDTO.class);
+            CgPackLayoutDTO body = response.getBody();
+            return body != null ? body : new CgPackLayoutDTO();
+        } catch (HttpStatusCodeException e) {
+            log.warn("client-gw pack layout lookup failed (store {}): {} {}",
+                    storeId, e.getStatusCode(), e.getResponseBodyAsString());
+            return new CgPackLayoutDTO();
+        } catch (ResourceAccessException e) {
+            log.warn("client-gw pack layout lookup unreachable (store {}): {}", storeId, e.getMessage());
+            return new CgPackLayoutDTO();
         }
     }
 

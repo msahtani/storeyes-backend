@@ -193,7 +193,8 @@ public class AuthService {
                                 .role(rm.getRole().getName())
                                 .feedbackOnlyMode(rm.getStore().isFeedbackOnlyMode())
                                 .staffOnlyMode(rm.getStore().isStaffOnlyMode())
-                                .features(resolveFeatures(rm.getStore().getId(), userId))
+                                .features(resolveFeatures(rm.getStore().getId(), rm.getRole().getName()))
+                                .mobileLayout(clientGwLookupService.fetchPackLayout(rm.getStore().getId()).getMobileLayout())
                                 .build())
                         .collect(java.util.stream.Collectors.toList());
             }
@@ -467,18 +468,28 @@ public class AuthService {
     }
 
     /**
-     * Resolves the concrete features a user can access at a store: fetches the user's role +
-     * featurePolicy for that store and the store's granted feature sets from the upstream
-     * client-gw gateway (st-admin-back), then intersects them. Fails soft to an empty list if
-     * the user has no client-gw membership at this store, or the gateway is unreachable —
-     * {@link ClientGwLookupService} already logs the underlying reason.
+     * Resolves the concrete features a user can access at a store: looks up the store's role
+     * matching {@code roleName} (global or store-scoped) via the upstream client-gw gateway
+     * (st-admin-back) to get its featurePolicy, then intersects that against the store's granted
+     * feature sets. Fails closed to an empty list -- not open to full access -- if no role with
+     * that name is found upstream, or the gateway is unreachable; {@link ClientGwLookupService}
+     * already logs the underlying reason.
      */
-    private List<FeatureAccessDTO> resolveFeatures(Long storeId, String userId) {
-        return clientGwLookupService.fetchClient(storeId, userId)
-                .map(client -> featureAccessResolver.resolve(
-                        client.getFeaturePolicy(),
+    private List<FeatureAccessDTO> resolveFeatures(Long storeId, String roleName) {
+        if (roleName == null) {
+            return List.of();
+        }
+        return clientGwLookupService.fetchRoles(storeId).stream()
+                .filter(role -> roleName.equalsIgnoreCase(role.getName()))
+                .findFirst()
+                .map(role -> featureAccessResolver.resolve(
+                        role.getFeaturePolicy(),
                         clientGwLookupService.fetchFeatureSets(storeId)))
-                .orElse(List.of());
+                .orElseGet(() -> {
+                    log.warn("No client-gw role named '{}' visible to store {}; resolving to no features",
+                            roleName, storeId);
+                    return List.of();
+                });
     }
 
     /**

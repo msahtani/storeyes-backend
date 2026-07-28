@@ -8,16 +8,17 @@ import lombok.NoArgsConstructor;
 import java.util.Map;
 
 /**
- * Minimal local mirror of the upstream client-gw {@code ClientDTO} (st-admin-back), keeping only
- * the fields this app needs to resolve login-time feature access. {@code ignoreUnknown} so the
- * upstream can add fields (id, username, email, ...) without breaking deserialization here.
+ * Local mirror of the upstream client-gw {@code RoleSummaryDTO} (st-admin-back,
+ * {@code GET /client-gw/roles}) — a role visible to a store (global or that store's own custom
+ * role) with its featurePolicy.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class CgClientDTO {
-    private Long roleId;
-    private String roleName;
+public class CgRoleDTO {
+    private Long id;
+    private String name;
+    private Long storeId;
     private Map<String, Object> featurePolicy;
 }

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -31,5 +32,7 @@ public class MultiStoreAuthResponse {
         private boolean feedbackOnlyMode;
         private boolean staffOnlyMode;
         private List<FeatureAccessDTO> features;
+        /** The store's Pack home screen / nav bar layout. Null if no pack assigned or no layout configured. */
+        private Map<String, Object> mobileLayout;
     }
 }
