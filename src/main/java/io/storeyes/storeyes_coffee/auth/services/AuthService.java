@@ -183,21 +183,7 @@ public class AuthService {
             Jwt jwt = jwtDecoder.decode((String) responseBody.get("access_token"));
             String userId = jwt.getSubject();
 
-            List<MultiStoreAuthResponse.StoreInfo> stores = java.util.Collections.emptyList();
-            if (userId != null) {
-                stores = roleMappingRepository.findAllByUser_IdOrderByStore_IdAsc(userId).stream()
-                        .map(rm -> MultiStoreAuthResponse.StoreInfo.builder()
-                                .id(rm.getStore().getId())
-                                .storeName(rm.getStore().getName())
-                                .storeCode(rm.getStore().getCode())
-                                .role(rm.getRole().getName())
-                                .feedbackOnlyMode(rm.getStore().isFeedbackOnlyMode())
-                                .staffOnlyMode(rm.getStore().isStaffOnlyMode())
-                                .features(resolveFeatures(rm.getStore().getId(), rm.getRole().getName()))
-                                .mobileLayout(clientGwLookupService.fetchPackLayout(rm.getStore().getId()).getMobileLayout())
-                                .build())
-                        .collect(java.util.stream.Collectors.toList());
-            }
+            List<MultiStoreAuthResponse.StoreInfo> stores = buildStoresForUser(userId);
 
             return MultiStoreAuthResponse.builder()
                     .accessToken((String) responseBody.get("access_token"))
@@ -212,6 +198,39 @@ public class AuthService {
         } catch (HttpClientErrorException e) {
             throw new RuntimeException("Authentication failed: " + e.getResponseBodyAsString(), e);
         }
+    }
+
+    /**
+     * All stores the currently authenticated user belongs to, with the same shape
+     * returned at login. Used to refresh store entitlements without a re-login
+     * (e.g. on app startup for an already-logged-in user).
+     *
+     * @throws RuntimeException if there is no authenticated user in the security context
+     */
+    public List<MultiStoreAuthResponse.StoreInfo> getMyStores() {
+        String userId = KeycloakTokenUtils.getUserId();
+        if (userId == null) {
+            throw new RuntimeException("User is not authenticated");
+        }
+        return buildStoresForUser(userId);
+    }
+
+    private List<MultiStoreAuthResponse.StoreInfo> buildStoresForUser(String userId) {
+        if (userId == null) {
+            return java.util.Collections.emptyList();
+        }
+        return roleMappingRepository.findAllByUser_IdOrderByStore_IdAsc(userId).stream()
+                .map(rm -> MultiStoreAuthResponse.StoreInfo.builder()
+                        .id(rm.getStore().getId())
+                        .storeName(rm.getStore().getName())
+                        .storeCode(rm.getStore().getCode())
+                        .role(rm.getRole().getName())
+                        .feedbackOnlyMode(rm.getStore().isFeedbackOnlyMode())
+                        .staffOnlyMode(rm.getStore().isStaffOnlyMode())
+                        .features(resolveFeatures(rm.getStore().getId(), rm.getRole().getName()))
+                        .mobileLayout(clientGwLookupService.fetchPackLayout(rm.getStore().getId()).getMobileLayout())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
     }
 
     /**

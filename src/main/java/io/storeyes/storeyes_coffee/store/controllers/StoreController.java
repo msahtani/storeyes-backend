@@ -1,5 +1,7 @@
 package io.storeyes.storeyes_coffee.store.controllers;
 
+import io.storeyes.storeyes_coffee.auth.dto.MultiStoreAuthResponse;
+import io.storeyes.storeyes_coffee.auth.services.AuthService;
 import io.storeyes.storeyes_coffee.store.dto.CreateStoreRequest;
 import io.storeyes.storeyes_coffee.store.dto.PaginatedResponse;
 import io.storeyes.storeyes_coffee.store.dto.StoreDTO;
@@ -11,13 +13,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/stores")
 @RequiredArgsConstructor
 public class StoreController {
-    
+
     private final StoreService storeService;
-    
+    private final AuthService authService;
+
     /**
      * Create a new store
      * POST /api/stores
@@ -27,7 +32,18 @@ public class StoreController {
         StoreDTO store = storeService.createStore(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(store);
     }
-    
+
+    /**
+     * All stores the currently authenticated user belongs to, with entitlements
+     * and mobile layout — same shape as the multi-store login response's `stores`.
+     * Used to refresh store entitlements on app startup without a re-login.
+     * GET /api/stores/my
+     */
+    @GetMapping("/my")
+    public ResponseEntity<List<MultiStoreAuthResponse.StoreInfo>> getMyStores() {
+        return ResponseEntity.ok(authService.getMyStores());
+    }
+
     /**
      * Get store by code
      * GET /api/stores/code/{code}
@@ -37,7 +53,7 @@ public class StoreController {
         StoreDTO store = storeService.getStoreByCode(code);
         return ResponseEntity.ok(store);
     }
-    
+
     /**
      * Get store by ID
      * GET /api/stores/{id}
