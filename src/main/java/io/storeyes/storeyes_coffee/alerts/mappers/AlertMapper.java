@@ -13,6 +13,7 @@ public interface AlertMapper {
     
     @Mapping(target = "isProcessed", source = "processed")
     @Mapping(target = "humanJudgementComment", ignore = true)
+    @Mapping(target = "imageUrl", source = "secondaryImageUrl")
     AlertDTO toDTO(Alert alert);
 
     List<AlertDTO> toDTOList(List<Alert> alerts);
@@ -24,6 +25,7 @@ public interface AlertMapper {
     @Mapping(target = "sales", source = "sales")
     @Mapping(target = "isProcessed", source = "processed")
     @Mapping(target = "humanJudgementComment", ignore = true)
+    @Mapping(target = "imageUrl", source = "secondaryImageUrl")
     AlertDetailsDTO toDetailsDTO(Alert alert);
 }
 

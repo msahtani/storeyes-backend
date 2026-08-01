@@ -59,6 +59,9 @@ public class Alert {
     @Column(name = "secondary_video_url", length = 1024)
     private String secondaryVideoUrl;
 
+    @Column(name = "secondary_image_url", length = 1024)
+    private String secondaryImageUrl;
+
     @Column(name = "human_judgement", nullable = false)
     @Enumerated(EnumType.STRING)
     private HumanJudgement humanJudgement;
