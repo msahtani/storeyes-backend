@@ -16,75 +16,10 @@ import java.util.Optional;
 
 @Repository
 public interface AlertRepository extends JpaRepository<Alert, Long> {
-    
-    // Find alerts by exact date (day)
-    @Query("SELECT a FROM Alert a WHERE DATE(a.alertDate) = DATE(:date) ORDER BY a.alertDate DESC")
-    List<Alert> findByAlertDate(LocalDateTime date);
-    
-    // Find alert by exact alertDate timestamp
-    @Query("SELECT a FROM Alert a WHERE a.alertDate = :alertDate")
-    Optional<Alert> findByExactAlertDate(LocalDateTime alertDate);
-    
-    // Find alert by exact alertDate timestamp and alertType
-    @Query("SELECT a FROM Alert a WHERE a.alertDate = :alertDate AND a.alertType = :alertType")
-    Optional<Alert> findByExactAlertDateAndAlertType(LocalDateTime alertDate, AlertType alertType);
-    
-    // Find alert by exact alertDate timestamp, alertType, and storeId
-    @Query("SELECT a FROM Alert a WHERE a.alertDate = :alertDate AND a.alertType = :alertType AND a.store.id = :storeId")
-    Optional<Alert> findByExactAlertDateAndAlertTypeAndStoreId(LocalDateTime alertDate, AlertType alertType, Long storeId);
-    
-    // Find alerts within a date range
-    @Query("SELECT a FROM Alert a WHERE a.alertDate >= :startDate AND a.alertDate <= :endDate ORDER BY a.alertDate DESC")
-    List<Alert> findByAlertDateBetween(
-        LocalDateTime startDate,
-        LocalDateTime endDate
-    );
-    
-    // Find all processed alerts
-    @Query("SELECT a FROM Alert a WHERE a.isProcessed = true ORDER BY a.alertDate DESC")
-    List<Alert> findAllProcessed();
-    
-    // Find all unprocessed alerts
-    @Query("SELECT a FROM Alert a WHERE a.isProcessed = false ORDER BY a.alertDate DESC")
-    List<Alert> findAllUnprocessed();
-    
-    // Find processed alerts by exact date (day)
-    @Query("SELECT a FROM Alert a WHERE DATE(a.alertDate) = DATE(:date) AND a.isProcessed = true ORDER BY a.alertDate DESC")
-    List<Alert> findProcessedByAlertDate(LocalDateTime date);
-    
-    // Find unprocessed alerts by exact date (day)
-    @Query("SELECT a FROM Alert a WHERE DATE(a.alertDate) = DATE(:date) AND a.isProcessed = false ORDER BY a.alertDate DESC")
-    List<Alert> findUnprocessedByAlertDate(LocalDateTime date);
-    
-    // Find processed alerts within a date range
-    @Query("SELECT a FROM Alert a WHERE a.alertDate >= :startDate AND a.alertDate <= :endDate AND a.isProcessed = true ORDER BY a.alertDate DESC")
-    List<Alert> findProcessedByAlertDateBetween(
-        LocalDateTime startDate,
-        LocalDateTime endDate
-    );
-    
-    // Find unprocessed alerts within a date range
-    @Query("SELECT a FROM Alert a WHERE a.alertDate >= :startDate AND a.alertDate <= :endDate AND a.isProcessed = false ORDER BY a.alertDate DESC")
-    List<Alert> findUnprocessedByAlertDateBetween(
-        LocalDateTime startDate,
-        LocalDateTime endDate
-    );
-    
-    // Find processed alerts by exact date (day) and store ID
-    @Query("SELECT a FROM Alert a WHERE DATE(a.alertDate) = DATE(:date) AND a.isProcessed = true AND a.store.id = :storeId ORDER BY a.alertDate DESC")
-    List<Alert> findProcessedByAlertDateAndStoreId(LocalDateTime date, Long storeId);
-    
+
     // Find unprocessed alerts by exact date (day) and store ID
     @Query("SELECT a FROM Alert a WHERE DATE(a.alertDate) = DATE(:date) AND a.isProcessed = false AND a.store.id = :storeId ORDER BY a.alertDate DESC")
     List<Alert> findUnprocessedByAlertDateAndStoreId(LocalDateTime date, Long storeId);
-    
-    // Find processed alerts within a date range and store ID
-    @Query("SELECT a FROM Alert a WHERE a.alertDate >= :startDate AND a.alertDate <= :endDate AND a.isProcessed = true AND a.store.id = :storeId ORDER BY a.alertDate DESC")
-    List<Alert> findProcessedByAlertDateBetweenAndStoreId(
-        LocalDateTime startDate,
-        LocalDateTime endDate,
-        Long storeId
-    );
 
     // Default alerts list by exact date (day) and store ID:
     // processed alerts, plus unprocessed alerts already judged TRUE_POSITIVE
@@ -112,22 +47,10 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
         Long storeId
     );
     
-    // Find alerts by today's date and store ID
-    @Query("SELECT a FROM Alert a WHERE DATE(a.alertDate) = DATE(:today) AND a.store.id = :storeId AND a.isProcessed = false ORDER BY a.alertDate")
-    List<Alert> findByTodayAndStoreId(LocalDateTime today, Long storeId);
-    
-    // Find all alerts by exact date (day) and store ID (regardless of processed status)
-    @Query("SELECT a FROM Alert a WHERE DATE(a.alertDate) = :date AND a.store.id = :storeId ORDER BY a.alertDate DESC")
-    List<Alert> findByAlertDateAndStoreId(LocalDate date, Long storeId);
-    
     // Find all alerts by exact date (day) and store ID ordered by alertDate ascending (chronologically)
     @Query("SELECT a FROM Alert a WHERE DATE(a.alertDate) = :date AND a.store.id = :storeId ORDER BY a.alertDate ASC")
     List<Alert> findByAlertDateAndStoreIdOrderByAlertDateAsc(LocalDate date, Long storeId);
-    
-    // Find all alerts by store ID ordered by alertDate ascending (chronologically)
-    @Query("SELECT a FROM Alert a WHERE a.store.id = :storeId ORDER BY a.alertDate ASC")
-    List<Alert> findByStoreIdOrderByAlertDateAsc(Long storeId);
-    
+
     // Find alert by ID with sales (using JOIN FETCH to avoid N+1 query problem)
     @Query("SELECT DISTINCT a FROM Alert a LEFT JOIN FETCH a.sales s WHERE a.id = :id ORDER BY s.soldAt DESC")
     Optional<Alert> findByIdWithSales(Long id);
@@ -141,16 +64,6 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
         LocalDateTime updatedAt
     );
     
-    // Update secondary video URL, image URL and mark as processed
-    @Modifying
-    @Query("UPDATE Alert a SET a.secondaryVideoUrl = :secondaryVideoUrl, a.imageUrl = :imageUrl, a.isProcessed = true, a.updatedAt = :updatedAt WHERE a.id = :id")
-    int updateSecondaryVideoAndMarkProcessed(
-        Long id, 
-        String secondaryVideoUrl, 
-        String imageUrl,
-        LocalDateTime updatedAt
-    );
-
     /**
      * Count of alerts for a store on a calendar day ({@code DATE(alert_date) = DATE(:dayStart)})
      * shown on the default alerts list: processed alerts, plus unprocessed alerts judged
@@ -182,20 +95,5 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
             @Param("judgements") List<HumanJudgement> judgements,
             @Param("alertTypes") List<AlertType> alertTypes,
             @Param("includeNullType") boolean includeNullType);
-
-    /**
-     * Count of alerts for a store within a calendar date range (inclusive) shown on the default
-     * alerts list: processed alerts, plus unprocessed alerts judged {@code TRUE_POSITIVE},
-     * restricted to the human judgements in {@code :judgements} ({@code NEW}, {@code TRUE_POSITIVE}).
-     */
-    @Query("SELECT COUNT(a) FROM Alert a WHERE a.store.id = :storeId "
-            + "AND (a.isProcessed = true OR a.humanJudgement = io.storeyes.storeyes_coffee.alerts.entities.HumanJudgement.TRUE_POSITIVE) "
-            + "AND DATE(a.alertDate) >= :startDate AND DATE(a.alertDate) <= :endDate "
-            + "AND a.humanJudgement IN :judgements")
-    long countProcessedAlertsByDateRange(
-            @Param("storeId") Long storeId,
-            @Param("startDate") LocalDate startDate,
-            @Param("endDate") LocalDate endDate,
-            @Param("judgements") List<HumanJudgement> judgements);
 }
 

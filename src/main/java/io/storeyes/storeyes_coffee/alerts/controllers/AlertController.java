@@ -64,22 +64,6 @@ public class AlertController {
     }
     
     /**
-     * Get alert by ID.
-     * GET /api/alerts/{id}
-     *
-     * <p>For demo stores, pass {@code ?date=} (ISO date) to have the returned alert's
-     * {@code alertDate} rewritten to that date (time-of-day is preserved).
-     * If omitted for a demo store, today's date is used.</p>
-     */
-    @GetMapping("/{id}")
-    public ResponseEntity<AlertDTO> getAlertById(
-            @PathVariable Long id,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        Alert alert = alertService.getAlertById(id, date);
-        return ResponseEntity.ok(alertMapper.toDTO(alert));
-    }
-
-    /**
      * Get alert details with sales by ID.
      * GET /api/alerts/{id}/details
      * Uses JOIN FETCH to avoid N+1 query problem.
@@ -95,25 +79,5 @@ public class AlertController {
         AlertDetailsDTO alertDetails = alertService.getAlertDetailsWithSales(id, date);
         return ResponseEntity.ok(alertDetails);
     }
-    
-    /**
-     * Get all alerts
-     * GET /api/alerts/all
-     */
-    @GetMapping("/all")
-    public ResponseEntity<List<AlertDTO>> getAllAlerts() {
-        List<AlertDTO> alerts = alertService.getAllAlerts();
-        return ResponseEntity.ok(alerts);
-    }
-    
-    /**
-     * Get alert summaries (alertId and alertDate) for today by store_id
-     * GET /api/alerts/today?store_id={storeId}
-     * 
-     * Query Parameters:
-     * - store_id: Store ID - required
-     * 
-     * Returns alerts for today for the specified store
-     */
 }
 

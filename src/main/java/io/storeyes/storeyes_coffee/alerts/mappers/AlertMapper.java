@@ -10,7 +10,7 @@ import java.util.List;
 
 @Mapper(componentModel = "spring", uses = {io.storeyes.storeyes_coffee.sales.mappers.SalesMapper.class})
 public interface AlertMapper {
-    
+
     @Mapping(target = "isProcessed", source = "processed")
     @Mapping(target = "humanJudgementComment", ignore = true)
     @Mapping(target = "imageUrl", source = "secondaryImageUrl")

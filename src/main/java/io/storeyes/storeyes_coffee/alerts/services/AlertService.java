@@ -1,10 +1,7 @@
 package io.storeyes.storeyes_coffee.alerts.services;
 
-import io.storeyes.storeyes_coffee.alerts.dto.AlertDTO;
 import io.storeyes.storeyes_coffee.alerts.dto.AlertDetailsDTO;
 import io.storeyes.storeyes_coffee.alerts.dto.AlertSettingsDTO;
-import io.storeyes.storeyes_coffee.alerts.dto.AlertSummaryDTO;
-import io.storeyes.storeyes_coffee.alerts.dto.CreateAlertRequest;
 import io.storeyes.storeyes_coffee.alerts.entities.Alert;
 import io.storeyes.storeyes_coffee.alerts.entities.HumanJudgement;
 import io.storeyes.storeyes_coffee.alerts.mappers.AlertMapper;
@@ -31,38 +28,6 @@ public class AlertService {
     private final AlertMapper alertMapper;
     private final StoreRepository storeRepository;
     private final DemoStoreDataSourceResolver demoStoreDataSourceResolver;
-    
-    /**
-     * Create a new alert
-     * If an alert with the same alertDate and alertType already exists, ignores it without creating a duplicate
-     * If alertType is null, defaults to NOT_TAPPED
-     */
-    public void createAlert(CreateAlertRequest request) {
-        // Get store by code
-        var store = storeRepository.findByCode(request.getStoreCode())
-                .orElseThrow(() -> new RuntimeException("Store not found with code: " + request.getStoreCode()));
-        
-        // Determine alertType (default to NOT_TAPPED if null)
-        io.storeyes.storeyes_coffee.alerts.entities.AlertType alertType = request.getAlertType() != null 
-                ? request.getAlertType() 
-                : io.storeyes.storeyes_coffee.alerts.entities.AlertType.NOT_TAPPED;
-        
-        // Check if an alert with the same alertDate, alertType, and storeId already exists
-        if (alertRepository.findByExactAlertDateAndAlertTypeAndStoreId(request.getAlertDate(), alertType, store.getId()).isEmpty()) {
-            // No existing alert found, create a new one
-            Alert alert = Alert.builder()
-                    .alertDate(request.getAlertDate())
-                    .store(store)
-                    .mainVideoUrl(request.getMainVideoUrl())
-                    .productName(request.getProductName())
-                    .imageUrl(request.getImageUrl())
-                    .alertType(alertType)
-                    .isProcessed(false)
-                    .build();
-            
-            alertRepository.save(alert);
-        }
-    }
     
     /**
      * Get alerts by date and processed status (supports both exact date and date range).
@@ -166,8 +131,17 @@ public class AlertService {
         final boolean allowReturn = returnEnabled;
         return alerts.stream()
                 .filter(a -> {
+                    // The store-facing app only ever displays NOT_TAPPED / RETURN; other types
+                    // (e.g. UNKNOWN, TAPPED_LATER — admin-panel/device-gateway concepts) are
+                    // never surfaced here, regardless of store settings or the alertType filter.
+                    io.storeyes.storeyes_coffee.alerts.entities.AlertType type = a.getAlertType();
+                    if (type != null
+                            && type != io.storeyes.storeyes_coffee.alerts.entities.AlertType.NOT_TAPPED
+                            && type != io.storeyes.storeyes_coffee.alerts.entities.AlertType.RETURN) {
+                        return false;
+                    }
                     // Drop alert types disabled for this store (null type counts as NOT_TAPPED)
-                    boolean isReturn = a.getAlertType() == io.storeyes.storeyes_coffee.alerts.entities.AlertType.RETURN;
+                    boolean isReturn = type == io.storeyes.storeyes_coffee.alerts.entities.AlertType.RETURN;
                     if (isReturn ? !allowReturn : !allowNotTapped) return false;
                     // If alertType filter is set, only return matching alerts
                     if (filterAlertType != null) {
@@ -220,95 +194,6 @@ public class AlertService {
     }
     
     /**
-     * Get alert by ID.
-     * <p>If the current store is a demo store and {@code requestedDate} is provided (or defaults
-     * to today), the alert's {@code alertDate} is rewritten so its <em>date</em> portion matches
-     * {@code requestedDate} while preserving the original time-of-day component.</p>
-     *
-     * @param id            alert primary key
-     * @param requestedDate caller-supplied {@code ?date=} value; may be {@code null} (today used)
-     */
-    public Alert getAlertById(Long id, LocalDate requestedDate) {
-        Long storeId = CurrentStoreContext.getCurrentStoreId();
-        Alert alert = alertRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Alert not found with id: " + id));
-
-        if (storeId != null) {
-            DemoStoreDataSourceResolver.AlertsDataContext ctx =
-                    demoStoreDataSourceResolver.resolveAlertsDataContext(storeId);
-            if (ctx.alertDate() != null && alert.getAlertDate() != null) {
-                LocalDate targetDate = requestedDate != null ? requestedDate : LocalDate.now();
-                alert.setAlertDate(alert.getAlertDate().toLocalTime().atDate(targetDate));
-            }
-        }
-        return alert;
-    }
-
-    /**
-     * Get alert by ID (no date rewriting — kept for internal callers that don't pass a date).
-     */
-    public Alert getAlertById(Long id) {
-        return getAlertById(id, null);
-    }
-    
-    /**
-     * Get all alerts
-     */
-    public List<AlertDTO> getAllAlerts() {
-        List<Alert> alerts = alertRepository.findAll();
-        return alertMapper.toDTOList(alerts);
-    }
-    
-    /**
-     * Update secondary video URL, image URL and mark alert as processed
-     */
-    @Transactional
-    public boolean updateSecondaryVideoAndMarkProcessed(Long alertId, String secondaryVideoUrl, String imageUrl) {
-        LocalDateTime now = LocalDateTime.now();
-        int updated = alertRepository.updateSecondaryVideoAndMarkProcessed(alertId, secondaryVideoUrl, imageUrl, now);
-        return updated > 0;
-    }
-    
-    /**
-     * Get alert summaries (alertId and alertDate) for today by store_id
-     * Returns alerts for today for the specified store
-     */
-    public List<AlertSummaryDTO> getTodayAlertsByStoreId(Long storeId) {
-        // Get today's date
-        LocalDateTime today = LocalDate.now().atStartOfDay();
-        Long dataStoreId = demoStoreDataSourceResolver.resolveAlertsDataStoreId(storeId);
-
-        // Find alerts for today and store
-        List<Alert> alerts = alertRepository.findByTodayAndStoreId(today, dataStoreId);
-        
-        // Map to summary DTO
-        return alerts.stream()
-                .map(alert -> AlertSummaryDTO.builder()
-                        .alertId(alert.getId())
-                        .alertDate(alert.getAlertDate())
-                        .build())
-                .collect(Collectors.toList());
-    }
-    
-    /**
-     * Get alert summaries (alertId and alertDate) by date and store_id
-     * Returns all alerts (regardless of processed status) for the specified date and store
-     */
-    public List<AlertSummaryDTO> getAlertSummariesByDateAndStoreId(LocalDate date, Long storeId) {
-        Long dataStoreId = demoStoreDataSourceResolver.resolveAlertsDataStoreId(storeId);
-        // Find alerts by date and store
-        List<Alert> alerts = alertRepository.findByAlertDateAndStoreId(date, dataStoreId);
-        
-        // Map to summary DTO
-        return alerts.stream()
-                .map(alert -> AlertSummaryDTO.builder()
-                        .alertId(alert.getId())
-                        .alertDate(alert.getAlertDate())
-                        .build())
-                .collect(Collectors.toList());
-    }
-    
-    /**
      * Get alert details with sales by alert ID.
      * <p>If the current store is a demo store and {@code requestedDate} is provided (or defaults
      * to today), the returned DTO's {@code alertDate} is rewritten so its <em>date</em> portion
@@ -324,13 +209,6 @@ public class AlertService {
 
         // Use mapper to convert Alert to AlertDetailsDTO
         return alertMapper.toDetailsDTO(alert);
-    }
-
-    /**
-     * Get alert details with sales by alert ID (no date rewriting — kept for internal callers).
-     */
-    public AlertDetailsDTO getAlertDetailsWithSales(Long id) {
-        return getAlertDetailsWithSales(id, null);
     }
 }
 
