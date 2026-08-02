@@ -3,6 +3,7 @@ package io.storeyes.storeyes_coffee.alerts.controllers;
 import io.storeyes.storeyes_coffee.alerts.dto.AlertDTO;
 import io.storeyes.storeyes_coffee.alerts.dto.AlertDetailsDTO;
 import io.storeyes.storeyes_coffee.alerts.dto.AlertSettingsDTO;
+import io.storeyes.storeyes_coffee.alerts.dto.UpdateAlertClassRequest;
 import io.storeyes.storeyes_coffee.alerts.dto.UpdateHumanJudgementRequest;
 import io.storeyes.storeyes_coffee.alerts.entities.Alert;
 import io.storeyes.storeyes_coffee.alerts.entities.AlertType;
@@ -64,6 +65,21 @@ public class AlertController {
                 : ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
     
+    /**
+     * Assign (or clear, when {@code alertClassId} is null) an alert's classification tag.
+     * PATCH /api/alerts/{id}/alert-class
+     */
+    @PatchMapping("/{id}/alert-class")
+    public ResponseEntity<Void> updateAlertClass(
+            @PathVariable Long id,
+            @RequestBody UpdateAlertClassRequest request) {
+        boolean updated = alertService.updateAlertClass(id, request.getAlertClassId());
+
+        return updated
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+
     /**
      * Get alert details with sales by ID.
      * GET /api/alerts/{id}/details

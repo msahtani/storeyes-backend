@@ -59,8 +59,17 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
     @Modifying
     @Query("UPDATE Alert a SET a.humanJudgement = :judgement, a.updatedAt = :updatedAt WHERE a.id = :id")
     int updateHumanJudgement(
-        Long id, 
-        HumanJudgement judgement, 
+        Long id,
+        HumanJudgement judgement,
+        LocalDateTime updatedAt
+    );
+
+    // Update (or clear, when alertClassId is null) the alert's classification tag
+    @Modifying
+    @Query("UPDATE Alert a SET a.alertClassId = :alertClassId, a.updatedAt = :updatedAt WHERE a.id = :id")
+    int updateAlertClassId(
+        Long id,
+        Long alertClassId,
         LocalDateTime updatedAt
     );
     

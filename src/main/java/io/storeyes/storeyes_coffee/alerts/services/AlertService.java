@@ -197,7 +197,29 @@ public class AlertService {
         int updated = alertRepository.updateHumanJudgement(alertId, judgement, now);
         return updated > 0;
     }
-    
+
+    /**
+     * Assigns (or clears, when {@code alertClassId} is null) an alert's classification tag.
+     * Validates that the class is actually visible to the current store (global or that store's
+     * own) before assigning it, so a store can't tag its alerts with another store's class by
+     * guessing IDs.
+     */
+    @Transactional
+    public boolean updateAlertClass(Long alertId, Long alertClassId) {
+        if (alertClassId != null) {
+            Long storeId = CurrentStoreContext.requireCurrentStoreId();
+            boolean visible = clientGwLookupService.fetchAlertClasses(storeId).stream()
+                    .anyMatch(c -> alertClassId.equals(c.getId()));
+            if (!visible) {
+                throw new IllegalArgumentException("Alert class not found: " + alertClassId);
+            }
+        }
+        LocalDateTime now = LocalDateTime.now();
+        int updated = alertRepository.updateAlertClassId(alertId, alertClassId, now);
+        return updated > 0;
+    }
+
+
     /**
      * Get alert details with sales by alert ID.
      * <p>If the current store is a demo store and {@code requestedDate} is provided (or defaults
