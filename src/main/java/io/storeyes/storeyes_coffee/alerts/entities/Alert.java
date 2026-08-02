@@ -43,6 +43,14 @@ public class Alert {
     @Column(name = "alert_type", columnDefinition = "int default 0")
     private AlertType alertType;
 
+    /**
+     * FK to the shared {@code alert_classes} table (owned/migrated by st-admin-back, V8).
+     * Kept as a plain scalar rather than a {@code @ManyToOne} relation since this app never
+     * writes alert classes — names are resolved via {@link io.storeyes.storeyes_coffee.clientgw.services.ClientGwLookupService}.
+     */
+    @Column(name = "alert_class_id")
+    private Long alertClassId;
+
 
     @Column(name = "video_url", nullable = false, length = 1024)
     private String mainVideoUrl;

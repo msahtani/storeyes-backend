@@ -1,5 +1,6 @@
 package io.storeyes.storeyes_coffee.alerts.dto;
 
+import io.storeyes.storeyes_coffee.alerts.entities.AlertType;
 import io.storeyes.storeyes_coffee.alerts.entities.HumanJudgement;
 import io.storeyes.storeyes_coffee.sales.dto.SalesDTO;
 import lombok.AllArgsConstructor;
@@ -15,7 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class AlertDetailsDTO {
-    
+
     private Long id;
     private LocalDateTime alertDate;
     private String mainVideoUrl;
@@ -28,5 +29,8 @@ public class AlertDetailsDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<SalesDTO> sales;
+    private AlertType alertType;
+    /** Name of the alert's classification tag, resolved from the client-gw alert-classes lookup; null when unclassified. */
+    private String alertClassName;
 }
 

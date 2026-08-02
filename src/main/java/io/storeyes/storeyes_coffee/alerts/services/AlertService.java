@@ -1,11 +1,14 @@
 package io.storeyes.storeyes_coffee.alerts.services;
 
+import io.storeyes.storeyes_coffee.alerts.dto.AlertDTO;
 import io.storeyes.storeyes_coffee.alerts.dto.AlertDetailsDTO;
 import io.storeyes.storeyes_coffee.alerts.dto.AlertSettingsDTO;
 import io.storeyes.storeyes_coffee.alerts.entities.Alert;
 import io.storeyes.storeyes_coffee.alerts.entities.HumanJudgement;
 import io.storeyes.storeyes_coffee.alerts.mappers.AlertMapper;
 import io.storeyes.storeyes_coffee.alerts.repositories.AlertRepository;
+import io.storeyes.storeyes_coffee.clientgw.dto.CgAlertClassDTO;
+import io.storeyes.storeyes_coffee.clientgw.services.ClientGwLookupService;
 import io.storeyes.storeyes_coffee.security.CurrentStoreContext;
 import io.storeyes.storeyes_coffee.store.entities.Store;
 import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
@@ -18,16 +21,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class AlertService {
-    
+
     private final AlertRepository alertRepository;
     private final AlertMapper alertMapper;
     private final StoreRepository storeRepository;
     private final DemoStoreDataSourceResolver demoStoreDataSourceResolver;
+    private final ClientGwLookupService clientGwLookupService;
     
     /**
      * Get alerts by date and processed status (supports both exact date and date range).
@@ -208,7 +213,42 @@ public class AlertService {
                 .orElseThrow(() -> new RuntimeException("Alert not found with id: " + id));
 
         // Use mapper to convert Alert to AlertDetailsDTO
-        return alertMapper.toDetailsDTO(alert);
+        AlertDetailsDTO dto = alertMapper.toDetailsDTO(alert);
+        if (alert.getAlertClassId() != null) {
+            Long storeId = CurrentStoreContext.getCurrentStoreId();
+            if (storeId != null) {
+                dto.setAlertClassName(fetchAlertClassNamesById(storeId).get(alert.getAlertClassId()));
+            }
+        }
+        return dto;
+    }
+
+    /**
+     * Resolves each alert's classification tag name (if any) and sets it on the matching DTO.
+     * {@code alerts} and {@code dtos} must be the same size and in the same order (as produced by
+     * {@link AlertMapper#toDTOList}). No-op if none of the alerts carry a class, or the current
+     * store can't be resolved.
+     */
+    public void enrichAlertClassNames(List<Alert> alerts, List<AlertDTO> dtos) {
+        boolean anyClassified = alerts.stream().anyMatch(a -> a.getAlertClassId() != null);
+        if (!anyClassified) return;
+        Long storeId = CurrentStoreContext.getCurrentStoreId();
+        if (storeId == null) return;
+
+        Map<Long, String> namesById = fetchAlertClassNamesById(storeId);
+        if (namesById.isEmpty()) return;
+
+        for (int i = 0; i < alerts.size() && i < dtos.size(); i++) {
+            Long classId = alerts.get(i).getAlertClassId();
+            if (classId != null) {
+                dtos.get(i).setAlertClassName(namesById.get(classId));
+            }
+        }
+    }
+
+    private Map<Long, String> fetchAlertClassNamesById(Long storeId) {
+        return clientGwLookupService.fetchAlertClasses(storeId).stream()
+                .collect(Collectors.toMap(CgAlertClassDTO::getId, CgAlertClassDTO::getName, (a, b) -> a));
     }
 }
 

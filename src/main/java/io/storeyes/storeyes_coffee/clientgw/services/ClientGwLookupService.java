@@ -1,6 +1,7 @@
 package io.storeyes.storeyes_coffee.clientgw.services;
 
 import io.storeyes.storeyes_coffee.clientgw.config.ClientGwProperties;
+import io.storeyes.storeyes_coffee.clientgw.dto.CgAlertClassDTO;
 import io.storeyes.storeyes_coffee.clientgw.dto.CgFeatureSetDTO;
 import io.storeyes.storeyes_coffee.clientgw.dto.CgPackLayoutDTO;
 import io.storeyes.storeyes_coffee.clientgw.dto.CgRoleDTO;
@@ -106,6 +107,26 @@ public class ClientGwLookupService {
         } catch (ResourceAccessException e) {
             log.warn("client-gw pack layout lookup unreachable (store {}): {}", storeId, e.getMessage());
             return new CgPackLayoutDTO();
+        }
+    }
+
+    /** Alert classes visible to the given store — global classes plus that store's own custom ones. */
+    public List<CgAlertClassDTO> fetchAlertClasses(Long storeId) {
+        URI uri = URI.create(clientGwProperties.getBaseUrl() + "/alert-classes");
+        try {
+            ResponseEntity<List<CgAlertClassDTO>> response = restTemplate.exchange(
+                    uri, HttpMethod.GET, new HttpEntity<>(headers(storeId)),
+                    new ParameterizedTypeReference<>() {
+                    });
+            List<CgAlertClassDTO> body = response.getBody();
+            return body != null ? body : List.of();
+        } catch (HttpStatusCodeException e) {
+            log.warn("client-gw alert-classes lookup failed (store {}): {} {}",
+                    storeId, e.getStatusCode(), e.getResponseBodyAsString());
+            return List.of();
+        } catch (ResourceAccessException e) {
+            log.warn("client-gw alert-classes lookup unreachable (store {}): {}", storeId, e.getMessage());
+            return List.of();
         }
     }
 

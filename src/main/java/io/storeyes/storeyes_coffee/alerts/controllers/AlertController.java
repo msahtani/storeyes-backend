@@ -36,6 +36,7 @@ public class AlertController {
             @RequestParam(required = false) AlertType alertType) {
         List<Alert> alerts = alertService.getAlertsByDate(date, endDate, unprocessed, returnType, alertType);
         List<AlertDTO> alertDTOs = alertMapper.toDTOList(alerts);
+        alertService.enrichAlertClassNames(alerts, alertDTOs);
         return ResponseEntity.ok(alertDTOs);
     }
 
