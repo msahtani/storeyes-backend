@@ -3,6 +3,8 @@ package io.storeyes.storeyes_coffee.home.services;
 import io.storeyes.storeyes_coffee.alerts.entities.AlertType;
 import io.storeyes.storeyes_coffee.alerts.entities.HumanJudgement;
 import io.storeyes.storeyes_coffee.alerts.repositories.AlertRepository;
+import io.storeyes.storeyes_coffee.dailyalert.entities.DailyAlert;
+import io.storeyes.storeyes_coffee.dailyalert.repositories.DailyAlertRepository;
 import io.storeyes.storeyes_coffee.home.dto.HomeSummaryResponse;
 import io.storeyes.storeyes_coffee.kpi.services.KpiService;
 import io.storeyes.storeyes_coffee.statistics.services.StatisticsService;
@@ -31,6 +33,7 @@ public class HomeSummaryService {
 
     private final StatisticsService statisticsService;
     private final AlertRepository alertRepository;
+    private final DailyAlertRepository dailyAlertRepository;
     private final KpiService kpiService;
     private final DemoStoreDataSourceResolver demoStoreDataSourceResolver;
     private final StoreRepository storeRepository;
@@ -49,6 +52,13 @@ public class HomeSummaryService {
                 demoStoreDataSourceResolver.resolveAlertsDataContext(storeId);
         // For demo stores, use the fixed alertDate from the mapping instead of the display date
         LocalDate alertsQueryDate = alertsCtx.alertDate() != null ? alertsCtx.alertDate() : displayDate;
+
+        // Daily visibility gate (toggled by admin staff in st-admin-back): a missing row counts
+        // as visible (fail-open) — only an explicit is_visible = false row hides the day's count.
+        boolean dailyAlertsVisible = dailyAlertRepository
+                .findByStoreIdAndDate(alertsCtx.dataStoreId(), alertsQueryDate)
+                .map(DailyAlert::isVisible)
+                .orElse(true);
 
         // Per-store alert-type visibility: count only enabled types. Flags are read from the
         // selected store (not the demo data store), where the configuration lives.
@@ -78,7 +88,7 @@ public class HomeSummaryService {
         }
 
         long alertsCount;
-        if (!alertsActive || (!notTappedEnabled && !returnEnabled)) {
+        if (!alertsActive || !dailyAlertsVisible || (!notTappedEnabled && !returnEnabled)) {
             alertsCount = 0;
         } else if (notTappedEnabled && returnEnabled) {
             alertsCount = alertRepository.countProcessedHomeAlertsByDay(

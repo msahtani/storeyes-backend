@@ -9,6 +9,8 @@ import io.storeyes.storeyes_coffee.alerts.mappers.AlertMapper;
 import io.storeyes.storeyes_coffee.alerts.repositories.AlertRepository;
 import io.storeyes.storeyes_coffee.clientgw.dto.CgAlertClassDTO;
 import io.storeyes.storeyes_coffee.clientgw.services.ClientGwLookupService;
+import io.storeyes.storeyes_coffee.dailyalert.entities.DailyAlert;
+import io.storeyes.storeyes_coffee.dailyalert.repositories.DailyAlertRepository;
 import io.storeyes.storeyes_coffee.security.CurrentStoreContext;
 import io.storeyes.storeyes_coffee.store.entities.Store;
 import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
@@ -33,6 +35,7 @@ public class AlertService {
     private final StoreRepository storeRepository;
     private final DemoStoreDataSourceResolver demoStoreDataSourceResolver;
     private final ClientGwLookupService clientGwLookupService;
+    private final DailyAlertRepository dailyAlertRepository;
     
     /**
      * Get alerts by date and processed status (supports both exact date and date range).
@@ -96,6 +99,20 @@ public class AlertService {
         } else {
             queryDate    = requestedDate;
             queryEndDate = endDate;
+        }
+
+        // Daily visibility gate (toggled by admin staff in st-admin-back): a missing row counts
+        // as visible (fail-open) — only an explicit is_visible = false row hides that day's
+        // alerts. Only applied to the single-day path; the gate is per-day, and date-range
+        // queries would need a per-row check that isn't worth the complexity here.
+        if (queryEndDate == null) {
+            boolean dailyAlertsVisible = dailyAlertRepository
+                    .findByStoreIdAndDate(dataStoreId, queryDate.toLocalDate())
+                    .map(DailyAlert::isVisible)
+                    .orElse(true);
+            if (!dailyAlertsVisible) {
+                return List.of();
+            }
         }
 
         List<Alert> alerts;
