@@ -103,9 +103,14 @@ public class AlertService {
 
         // Daily visibility gate (toggled by admin staff in st-admin-back): a missing row counts
         // as visible (fail-open) — only an explicit is_visible = false row hides that day's
-        // alerts. Only applied to the single-day path; the gate is per-day, and date-range
-        // queries would need a per-row check that isn't worth the complexity here.
-        if (queryEndDate == null) {
+        // alerts. Applied whenever the query resolves to a single calendar day — either no
+        // endDate was given, or endDate falls on the same day as the start (a same-day range,
+        // e.g. startDate=endDate=2026-08-02). True multi-day ranges are intentionally left
+        // ungated; the gate is per-day and a per-row check across a range isn't worth the
+        // complexity here.
+        boolean singleDayQuery = queryEndDate == null
+                || queryEndDate.toLocalDate().equals(queryDate.toLocalDate());
+        if (singleDayQuery) {
             boolean dailyAlertsVisible = dailyAlertRepository
                     .findByStoreIdAndDate(dataStoreId, queryDate.toLocalDate())
                     .map(DailyAlert::isVisible)

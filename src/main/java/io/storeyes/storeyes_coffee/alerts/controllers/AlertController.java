@@ -31,11 +31,13 @@ public class AlertController {
     @GetMapping
     public ResponseEntity<List<AlertDTO>> getAlertsByDate(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime date,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(required = false) Boolean unprocessed,
             @RequestParam(required = false) Boolean returnType,
             @RequestParam(required = false) AlertType alertType) {
-        List<Alert> alerts = alertService.getAlertsByDate(date, endDate, unprocessed, returnType, alertType);
+        LocalDateTime effectiveDate = startDate != null ? startDate : date;
+        List<Alert> alerts = alertService.getAlertsByDate(effectiveDate, endDate, unprocessed, returnType, alertType);
         List<AlertDTO> alertDTOs = alertMapper.toDTOList(alerts);
         alertService.enrichAlertClassNames(alerts, alertDTOs);
         return ResponseEntity.ok(alertDTOs);
