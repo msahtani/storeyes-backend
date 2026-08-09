@@ -5,6 +5,8 @@ import io.storeyes.storeyes_coffee.feedback.dto.FeedbackQuestionDTO;
 import io.storeyes.storeyes_coffee.feedback.dto.FeedbackQuestionUpdateRequest;
 import io.storeyes.storeyes_coffee.feedback.entities.FeedbackProfile;
 import io.storeyes.storeyes_coffee.feedback.entities.FeedbackQuestion;
+import io.storeyes.storeyes_coffee.feedback.exceptions.QuestionInUseException;
+import io.storeyes.storeyes_coffee.feedback.repositories.FeedbackAnswerRepository;
 import io.storeyes.storeyes_coffee.feedback.repositories.FeedbackProfileRepository;
 import io.storeyes.storeyes_coffee.feedback.repositories.FeedbackQuestionRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ public class FeedbackQuestionService {
 
     private final FeedbackQuestionRepository questionRepository;
     private final FeedbackProfileRepository profileRepository;
+    private final FeedbackAnswerRepository answerRepository;
 
     /** Returns all questions for a profile (including inactive) — admin view. */
     public List<FeedbackQuestionDTO> getAllByProfile(Long profileId) {
@@ -89,9 +92,20 @@ public class FeedbackQuestionService {
         return toDTO(findById(questionId));
     }
 
+    /**
+     * Hard-deletes a question. Rejected if the question already has customer
+     * answers recorded against it — deleting it would either violate the
+     * feedback_answers FK constraint or, if forced, silently destroy historical
+     * per-question stats. Deactivate the question instead in that case.
+     */
     @Transactional
     public void delete(Long profileId, Long questionId) {
-        questionRepository.delete(findById(questionId));
+        FeedbackQuestion question = findById(questionId);
+        if (answerRepository.existsByQuestionId(questionId)) {
+            throw new QuestionInUseException(
+                    "This question already has customer answers and can't be deleted. Deactivate it instead.");
+        }
+        questionRepository.delete(question);
         resequence(profileId);
     }
 

@@ -10,4 +10,6 @@ import java.util.List;
 public interface FeedbackAnswerRepository extends JpaRepository<FeedbackAnswer, Long> {
 
     List<FeedbackAnswer> findByFeedbackIdIn(List<Long> feedbackIds);
+
+    boolean existsByQuestionId(Long questionId);
 }

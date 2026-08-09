@@ -1,5 +1,7 @@
 package io.storeyes.storeyes_coffee.config;
 
+import io.storeyes.storeyes_coffee.feedback.exceptions.QuestionInUseException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -108,6 +110,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
             .body(new ErrorResponse("Bad Request", message));
+    }
+
+    /**
+     * Handle attempts to delete an entity that's still referenced elsewhere
+     * (e.g. a feedback question that already has customer answers).
+     */
+    @ExceptionHandler(QuestionInUseException.class)
+    public ResponseEntity<ErrorResponse> handleQuestionInUseException(QuestionInUseException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse("Conflict", ex.getMessage()));
+    }
+
+    /**
+     * Safety net for any other foreign-key/unique-constraint violation
+     * (e.g. a delete that slipped past an explicit in-use check).
+     * Reported as 409 Conflict instead of a generic 500.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse("Conflict", "This item is still referenced by other data and can't be deleted."));
     }
 
     /**
