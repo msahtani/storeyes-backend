@@ -218,6 +218,24 @@ public class ChargeController {
     }
 
     /**
+     * Get the distinct custom "other" fixed charge names ever created for the current store.
+     * Lets the frontend keep showing an empty card for a custom charge in months where it
+     * hasn't been filled yet, the same way the predefined categories always appear.
+     * GET /api/charges/fixed/other/names
+     */
+    @GetMapping("/fixed/other/names")
+    public ResponseEntity<Map<String, Object>> getOtherFixedChargeNames() {
+        List<String> names = chargeService.getOtherFixedChargeNames();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", names);
+        response.put("message", "Other fixed charge names retrieved successfully");
+        response.put("timestamp", java.time.OffsetDateTime.now());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Get available employees for reuse
      * GET /api/charges/fixed/personnel/employees
      */

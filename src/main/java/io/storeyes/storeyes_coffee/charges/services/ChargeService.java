@@ -525,6 +525,17 @@ public class ChargeService {
     }
 
     /**
+     * Get the distinct custom names of "other" fixed charges ever created for this store.
+     * Once a custom fixed charge (e.g. "Rent") has been added in any month, its name is
+     * returned here so the frontend can keep showing an (empty, until filled) card for it
+     * in every other month, the same way the predefined categories always appear.
+     */
+    public List<String> getOtherFixedChargeNames() {
+        Long storeId = getChargesDataStoreId();
+        return fixedChargeRepository.findDistinctOtherChargeNamesByStoreId(storeId);
+    }
+
+    /**
      * Get available employees for reuse
      * Returns Employee entities from the employees table (reusable employees)
      * Filters by authenticated user's store

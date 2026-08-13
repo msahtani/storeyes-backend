@@ -105,4 +105,14 @@ public interface FixedChargeRepository extends JpaRepository<FixedCharge, Long> 
             @Param("name") String name,
             @Param("monthKey") String monthKey
     );
+
+    /**
+     * Distinct custom names ever used for OTHER fixed charges by this store, ordered by the
+     * month they first appeared. Used to keep a custom charge's card visible (empty) in every
+     * month for the store once it has been created in at least one month.
+     */
+    @Query("SELECT fc.name FROM FixedCharge fc WHERE fc.store.id = :storeId AND fc.category = " +
+           "io.storeyes.storeyes_coffee.charges.entities.ChargeCategory.OTHER AND fc.name IS NOT NULL " +
+           "GROUP BY fc.name ORDER BY MIN(fc.monthKey) ASC")
+    List<String> findDistinctOtherChargeNamesByStoreId(@Param("storeId") Long storeId);
 }
