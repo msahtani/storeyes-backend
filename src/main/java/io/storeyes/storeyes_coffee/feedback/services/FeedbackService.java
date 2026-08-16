@@ -21,6 +21,7 @@ import io.storeyes.storeyes_coffee.feedback.repositories.FeedbackQuestionReposit
 import io.storeyes.storeyes_coffee.feedback.repositories.FeedbackRepository;
 import io.storeyes.storeyes_coffee.store.entities.Store;
 import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
+import io.storeyes.storeyes_coffee.store.services.DemoStoreDataSourceResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -39,14 +40,25 @@ public class FeedbackService {
     private final FeedbackProfileRepository feedbackProfileRepository;
     private final FeedbackQuestionRepository feedbackQuestionRepository;
     private final FeedbackAnswerRepository feedbackAnswerRepository;
+    private final DemoStoreDataSourceResolver demoStoreDataSourceResolver;
 
     private static final DateTimeFormatter ISO = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
-    public boolean hasFeedbackProfile(Long storeId) {
+    /**
+     * @param contextStoreId store derived from the current JWT / store context (may be a demo store)
+     */
+    public boolean hasFeedbackProfile(Long contextStoreId) {
+        Long storeId = demoStoreDataSourceResolver.resolveFeedbackDataStoreId(contextStoreId);
         return feedbackProfileRepository.findByStoreId(storeId).isPresent();
     }
 
-    public FeedbackStatsResponse getStats(Long storeId, String from, String to) {
+    /**
+     * @param contextStoreId store derived from the current JWT / store context (may be a demo store);
+     *                        resolved to {@link DemoStoreDataSourceResolver#resolveFeedbackDataStoreId}
+     *                        before reading feedback data.
+     */
+    public FeedbackStatsResponse getStats(Long contextStoreId, String from, String to) {
+        Long storeId = demoStoreDataSourceResolver.resolveFeedbackDataStoreId(contextStoreId);
         LocalDateTime fromDt = LocalDate.parse(from).atStartOfDay();
         LocalDateTime toDt   = LocalDate.parse(to).atTime(23, 59, 59);
 

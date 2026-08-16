@@ -93,6 +93,18 @@ public class DemoStoreDataSourceResolver {
                 .orElse(contextStoreId);
     }
 
+    /**
+     * Feedback (kiosk reviews / satisfaction stats) is read from this store when the context store
+     * is a demo with {@link DemoStoreMapping#getFeedbackSourceStore()} set; otherwise {@code contextStoreId}.
+     */
+    public Long resolveFeedbackDataStoreId(Long contextStoreId) {
+        return demoStoreMappingRepository.findByDemoStore_Id(contextStoreId)
+                .map(DemoStoreMapping::getFeedbackSourceStore)
+                .filter(s -> s != null)
+                .map(Store::getId)
+                .orElse(contextStoreId);
+    }
+
     public record KpiDataContext(Long dataStoreId, double revenueQuantityMultiplier) {}
 
     /**

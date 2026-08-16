@@ -8,6 +8,6 @@ import java.util.Optional;
 
 public interface DemoStoreMappingRepository extends JpaRepository<DemoStoreMapping, Long> {
 
-    @EntityGraph(attributePaths = {"alertsSourceStore", "kpiSourceStore", "stockSourceStore", "chargesSourceStore", "accessSourceStore"})
+    @EntityGraph(attributePaths = {"alertsSourceStore", "kpiSourceStore", "stockSourceStore", "chargesSourceStore", "accessSourceStore", "feedbackSourceStore"})
     Optional<DemoStoreMapping> findByDemoStore_Id(Long demoStoreId);
 }
