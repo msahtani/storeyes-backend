@@ -10,6 +10,7 @@ import io.storeyes.storeyes_coffee.security.DeviceContext;
 import io.storeyes.storeyes_coffee.security.KeycloakTokenUtils;
 import io.storeyes.storeyes_coffee.store.entities.Store;
 import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
+import io.storeyes.storeyes_coffee.store.services.DemoStoreDataSourceResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +49,7 @@ public class StaffProxyController {
     private final StoreRepository storeRepository;
     private final Optional<FcmNotificationService> fcmNotificationService;
     private final ObjectMapper objectMapper;
+    private final DemoStoreDataSourceResolver demoStoreDataSourceResolver;
 
     /** Roles notified of attendance, matched case-insensitively against {@code roles.name}. */
     @Value("${app.attendance-notifications.roles:OWNER,MANAGER}")
@@ -70,6 +72,9 @@ public class StaffProxyController {
         HttpHeaders headers = copyHeaders(request);
 
         String storeCode = resolveStoreCode(request);
+        if (storeCode != null && HttpMethod.GET.matches(request.getMethod())) {
+            storeCode = resolveStaffDataStoreCode(storeCode);
+        }
         if (storeCode != null) {
             headers.set(STORE_CODE_HEADER, storeCode);
         }
@@ -269,5 +274,20 @@ public class StaffProxyController {
         return roleMappingRepository.findFirstByUser_IdOrderByStore_IdAsc(userId)
                 .map(rm -> rm.getStore().getCode())
                 .orElse(null);
+    }
+
+    /**
+     * For GET requests, substitutes a demo store's code with its mapped staff source store's code
+     * (when configured via {@link DemoStoreDataSourceResolver#resolveStaffDataStoreId}), so reads
+     * show that store's real staff/attendance data. Falls back to {@code storeCode} unchanged when
+     * there's no mapping, or the code doesn't resolve to a known store.
+     */
+    private String resolveStaffDataStoreCode(String storeCode) {
+        return storeRepository.findByCode(storeCode)
+                .map(Store::getId)
+                .map(demoStoreDataSourceResolver::resolveStaffDataStoreId)
+                .flatMap(storeRepository::findById)
+                .map(Store::getCode)
+                .orElse(storeCode);
     }
 }

@@ -105,6 +105,20 @@ public class DemoStoreDataSourceResolver {
                 .orElse(contextStoreId);
     }
 
+    /**
+     * Staff/attendance data (proxied to the upstream staff service) is read from this store when
+     * the context store is a demo with {@link DemoStoreMapping#getStaffSourceStore()} set;
+     * otherwise {@code contextStoreId}. Intended for GET (read) requests only — writes should
+     * keep targeting the caller's actual store.
+     */
+    public Long resolveStaffDataStoreId(Long contextStoreId) {
+        return demoStoreMappingRepository.findByDemoStore_Id(contextStoreId)
+                .map(DemoStoreMapping::getStaffSourceStore)
+                .filter(s -> s != null)
+                .map(Store::getId)
+                .orElse(contextStoreId);
+    }
+
     public record KpiDataContext(Long dataStoreId, double revenueQuantityMultiplier) {}
 
     /**

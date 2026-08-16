@@ -66,6 +66,11 @@ public class DemoStoreMapping {
     @JoinColumn(name = "feedback_source_store_id")
     private Store feedbackSourceStore;
 
+    /** Source store for staff/attendance data proxied to the upstream staff service (GET reads only). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "staff_source_store_id")
+    private Store staffSourceStore;
+
     /**
      * Fixed date used when fetching alerts for this demo store.
      * When set, alert queries target this specific date instead of the caller-supplied date.
