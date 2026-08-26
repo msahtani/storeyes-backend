@@ -43,6 +43,10 @@ public class Alert {
     @Column(name = "alert_type", columnDefinition = "int default 0")
     private AlertType alertType;
 
+    @Column(name = "alert_source")
+    @Enumerated(EnumType.STRING)
+    private AlertSource alertSource;
+
     /**
      * FK to the shared {@code alert_classes} table (owned/migrated by st-admin-back, V8).
      * Kept as a plain scalar rather than a {@code @ManyToOne} relation since this app never
