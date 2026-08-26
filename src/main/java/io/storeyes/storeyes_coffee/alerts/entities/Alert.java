@@ -43,9 +43,12 @@ public class Alert {
     @Column(name = "alert_type", columnDefinition = "int default 0")
     private AlertType alertType;
 
+    /**
+     * Raw alert-source tag ("AI", "PULSE", or other legacy/producer-specific values —
+     * kept as a plain string since the column holds values outside a fixed enum, e.g. "3").
+     */
     @Column(name = "alert_source")
-    @Enumerated(EnumType.STRING)
-    private AlertSource alertSource;
+    private String alertSource;
 
     /**
      * FK to the shared {@code alert_classes} table (owned/migrated by st-admin-back, V8).

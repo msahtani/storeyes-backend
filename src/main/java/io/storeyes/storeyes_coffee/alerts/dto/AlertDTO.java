@@ -1,6 +1,5 @@
 package io.storeyes.storeyes_coffee.alerts.dto;
 
-import io.storeyes.storeyes_coffee.alerts.entities.AlertSource;
 import io.storeyes.storeyes_coffee.alerts.entities.AlertType;
 import io.storeyes.storeyes_coffee.alerts.entities.HumanJudgement;
 import lombok.AllArgsConstructor;
@@ -30,6 +29,6 @@ public class AlertDTO {
     private AlertType alertType;
     /** Name of the alert's classification tag, resolved from the client-gw alert-classes lookup; null when unclassified. */
     private String alertClassName;
-    private AlertSource alertSource;
+    private String alertSource;
 }
 
