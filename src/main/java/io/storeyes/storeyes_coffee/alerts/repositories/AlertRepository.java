@@ -12,7 +12,6 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 @Repository
 public interface AlertRepository extends JpaRepository<Alert, Long> {
@@ -51,10 +50,6 @@ public interface AlertRepository extends JpaRepository<Alert, Long> {
     @Query("SELECT a FROM Alert a WHERE DATE(a.alertDate) = :date AND a.store.id = :storeId ORDER BY a.alertDate ASC")
     List<Alert> findByAlertDateAndStoreIdOrderByAlertDateAsc(LocalDate date, Long storeId);
 
-    // Find alert by ID with sales (using JOIN FETCH to avoid N+1 query problem)
-    @Query("SELECT DISTINCT a FROM Alert a LEFT JOIN FETCH a.sales s WHERE a.id = :id ORDER BY s.soldAt DESC")
-    Optional<Alert> findByIdWithSales(Long id);
-    
     // Update human judgement directly via query
     @Modifying
     @Query("UPDATE Alert a SET a.humanJudgement = :judgement, a.updatedAt = :updatedAt WHERE a.id = :id")

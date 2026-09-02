@@ -11,6 +11,9 @@ import io.storeyes.storeyes_coffee.clientgw.dto.CgAlertClassDTO;
 import io.storeyes.storeyes_coffee.clientgw.services.ClientGwLookupService;
 import io.storeyes.storeyes_coffee.dailyalert.entities.DailyAlert;
 import io.storeyes.storeyes_coffee.dailyalert.repositories.DailyAlertRepository;
+import io.storeyes.storeyes_coffee.sales.dto.SalesDTO;
+import io.storeyes.storeyes_coffee.sales.entities.CoffeeSalesHourly;
+import io.storeyes.storeyes_coffee.sales.repositories.CoffeeSalesHourlyRepository;
 import io.storeyes.storeyes_coffee.security.CurrentStoreContext;
 import io.storeyes.storeyes_coffee.store.entities.Store;
 import io.storeyes.storeyes_coffee.store.repositories.StoreRepository;
@@ -21,6 +24,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +41,10 @@ public class AlertService {
     private final DemoStoreDataSourceResolver demoStoreDataSourceResolver;
     private final ClientGwLookupService clientGwLookupService;
     private final DailyAlertRepository dailyAlertRepository;
+    private final CoffeeSalesHourlyRepository coffeeSalesHourlyRepository;
+
+    /** How many recent orders to attach to an alert's detail view. */
+    private static final int ALERT_DETAIL_RECENT_ORDERS = 5;
     
     /**
      * Get alerts by date and processed status (supports both exact date and date range).
@@ -243,21 +252,25 @@ public class AlertService {
 
 
     /**
-     * Get alert details with sales by alert ID.
+     * Get alert details by alert ID.
+     * <p>The {@code sales} list is the last {@value #ALERT_DETAIL_RECENT_ORDERS} orders for the
+     * alert's store at or before the alert's hour, read straight from {@code coffee_sales_hourly}
+     * — the {@code sales} entity table is not consulted.</p>
      * <p>If the current store is a demo store and {@code requestedDate} is provided (or defaults
      * to today), the returned DTO's {@code alertDate} is rewritten so its <em>date</em> portion
      * matches {@code requestedDate} while preserving the original time-of-day component.</p>
      *
      * @param id            alert primary key
      * @param requestedDate caller-supplied {@code ?date=} value; may be {@code null} (today used)
-     * @return AlertDetailsDTO with sales
+     * @return AlertDetailsDTO with recent orders
      */
     public AlertDetailsDTO getAlertDetailsWithSales(Long id, LocalDate requestedDate) {
-        Alert alert = alertRepository.findByIdWithSales(id)
+        Alert alert = alertRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Alert not found with id: " + id));
 
         // Use mapper to convert Alert to AlertDetailsDTO
         AlertDetailsDTO dto = alertMapper.toDetailsDTO(alert);
+        dto.setSales(fetchRecentOrders(alert));
         if (alert.getAlertClassId() != null) {
             Long storeId = CurrentStoreContext.getCurrentStoreId();
             if (storeId != null) {
@@ -293,6 +306,62 @@ public class AlertService {
     private Map<Long, String> fetchAlertClassNamesById(Long storeId) {
         return clientGwLookupService.fetchAlertClasses(storeId).stream()
                 .collect(Collectors.toMap(CgAlertClassDTO::getId, CgAlertClassDTO::getName, (a, b) -> a));
+    }
+
+    /**
+     * Last {@value #ALERT_DETAIL_RECENT_ORDERS} orders for the alert's store at or before the
+     * alert's hour, read from {@code coffee_sales_hourly} and mapped to {@link SalesDTO}.
+     * Returns an empty list when the alert has no store, store code, or date.
+     */
+    private List<SalesDTO> fetchRecentOrders(Alert alert) {
+        Store store = alert.getStore();
+        LocalDateTime alertDate = alert.getAlertDate();
+        if (store == null || store.getCode() == null || store.getCode().isBlank() || alertDate == null) {
+            return List.of();
+        }
+        return coffeeSalesHourlyRepository
+                .findRecentOrdersForStore(store.getCode(), alertDate.toLocalDate(),
+                        alertDate.getHour(), ALERT_DETAIL_RECENT_ORDERS)
+                .stream()
+                .map(AlertService::toSalesDTO)
+                .collect(Collectors.toList());
+    }
+
+    private static SalesDTO toSalesDTO(CoffeeSalesHourly row) {
+        return SalesDTO.builder()
+                .id(row.getId())
+                .soldAt(resolveSoldAt(row))
+                .productName(row.getCoffeeName())
+                .quantity(row.getQuantity() != null ? row.getQuantity().doubleValue() : null)
+                .price(row.getPrice() != null ? row.getPrice().doubleValue() : null)
+                .totalPrice(row.getTotalPrice() != null ? row.getTotalPrice().doubleValue() : null)
+                .category(row.getCategory())
+                .createdAt(row.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * Best-effort order timestamp: {@code sale_date} + parsed {@code sale_time}, falling back to
+     * the top of {@code hour} when {@code sale_time} is missing or unparseable, and to the start
+     * of the day when there is no hour either.
+     */
+    private static LocalDateTime resolveSoldAt(CoffeeSalesHourly row) {
+        if (row.getSaleDate() == null) {
+            return null;
+        }
+        LocalTime time = null;
+        String raw = row.getSaleTime();
+        if (raw != null && !raw.isBlank()) {
+            try {
+                time = LocalTime.parse(raw.trim());
+            } catch (DateTimeParseException ignored) {
+                // fall through to the hour-based fallback
+            }
+        }
+        if (time == null && row.getHour() != null && row.getHour() >= 0 && row.getHour() <= 23) {
+            time = LocalTime.of(row.getHour(), 0);
+        }
+        return time != null ? LocalDateTime.of(row.getSaleDate(), time) : row.getSaleDate().atStartOfDay();
     }
 }
 

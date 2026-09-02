@@ -20,10 +20,11 @@ public interface AlertMapper {
     List<AlertDTO> toDTOList(List<Alert> alerts);
 
     /**
-     * Map Alert entity to AlertDetailsDTO with sales
-     * Uses SalesMapper to map the nested sales list
+     * Map Alert entity to AlertDetailsDTO.
+     * {@code sales} is populated by the service from {@code coffee_sales_hourly} (the recent
+     * orders around the alert), not from the {@code sales} entity relation — so it is ignored here.
      */
-    @Mapping(target = "sales", source = "sales")
+    @Mapping(target = "sales", ignore = true)
     @Mapping(target = "isProcessed", source = "processed")
     @Mapping(target = "humanJudgementComment", ignore = true)
     @Mapping(target = "imageUrl", source = "secondaryImageUrl")
