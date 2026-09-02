@@ -253,8 +253,9 @@ public class AlertService {
 
     /**
      * Get alert details by alert ID.
-     * <p>The {@code sales} list is the last {@value #ALERT_DETAIL_RECENT_ORDERS} orders for the
-     * alert's store at or before the alert's hour, read straight from {@code coffee_sales_hourly}
+     * <p>The {@code sales} list is the last {@value #ALERT_DETAIL_RECENT_ORDERS} orders at or before
+     * the alert's hour, read straight from {@code coffee_sales_hourly} (matched on
+     * {@code coffee_shop_name} = store code, resolved through the demo KPI source for demo stores)
      * — the {@code sales} entity table is not consulted.</p>
      * <p>If the current store is a demo store and {@code requestedDate} is provided (or defaults
      * to today), the returned DTO's {@code alertDate} is rewritten so its <em>date</em> portion
@@ -309,22 +310,44 @@ public class AlertService {
     }
 
     /**
-     * Last {@value #ALERT_DETAIL_RECENT_ORDERS} orders for the alert's store at or before the
-     * alert's hour, read from {@code coffee_sales_hourly} and mapped to {@link SalesDTO}.
-     * Returns an empty list when the alert has no store, store code, or date.
+     * Last {@value #ALERT_DETAIL_RECENT_ORDERS} orders at or before the alert's hour, read from
+     * {@code coffee_sales_hourly} (matched on {@code coffee_shop_name} = store code) and mapped to
+     * {@link SalesDTO}. Returns an empty list when the store code or the alert date can't be resolved.
      */
     private List<SalesDTO> fetchRecentOrders(Alert alert) {
-        Store store = alert.getStore();
         LocalDateTime alertDate = alert.getAlertDate();
-        if (store == null || store.getCode() == null || store.getCode().isBlank() || alertDate == null) {
+        if (alertDate == null) {
+            return List.of();
+        }
+        String storeCode = resolveSalesStoreCode(alert);
+        if (storeCode == null || storeCode.isBlank()) {
             return List.of();
         }
         return coffeeSalesHourlyRepository
-                .findRecentOrdersForStore(store.getCode(), alertDate.toLocalDate(),
+                .findRecentOrdersForStore(storeCode, alertDate.toLocalDate(),
                         alertDate.getHour(), ALERT_DETAIL_RECENT_ORDERS)
                 .stream()
                 .map(AlertService::toSalesDTO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Store code to match against {@code coffee_sales_hourly.coffee_shop_name} for this alert's
+     * recent-orders list. When the current context store is a demo, the sales rows live under the
+     * KPI/sales source store (the same store the rest of the app reads {@code coffee_sales_hourly}
+     * from), so resolve that store's code; otherwise fall back to the alert's own store code.
+     */
+    private String resolveSalesStoreCode(Alert alert) {
+        Long contextStoreId = CurrentStoreContext.getCurrentStoreId();
+        if (contextStoreId != null) {
+            Long dataStoreId = demoStoreDataSourceResolver.resolveKpiContext(contextStoreId).dataStoreId();
+            String code = storeRepository.findById(dataStoreId).map(Store::getCode).orElse(null);
+            if (code != null && !code.isBlank()) {
+                return code;
+            }
+        }
+        Store store = alert.getStore();
+        return store != null ? store.getCode() : null;
     }
 
     private static SalesDTO toSalesDTO(CoffeeSalesHourly row) {
