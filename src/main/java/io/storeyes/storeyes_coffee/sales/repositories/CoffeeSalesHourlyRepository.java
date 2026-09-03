@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Repository
@@ -14,27 +15,49 @@ public interface CoffeeSalesHourlyRepository extends JpaRepository<CoffeeSalesHo
 
     /**
      * The most recent {@code limit} orders for a store (matched on {@code coffee_shop_name} = store
-     * code) up to and including a given day/hour, newest first. Ordering mirrors the raw-JDBC read
-     * in {@code SalesProcessor}: {@code sale_date DESC, hour DESC}, with {@code id DESC} as a stable
-     * tie-breaker within the same hour.
+     * code) at or before a given day/hour/minute, newest first. {@code hour} is only an hour bucket
+     * (e.g. an alert at 10:00 shares its bucket with sales up to 10:59), so within the alert's own
+     * hour a row is only included when its parsed {@code sale_time} is at or before {@code beforeTime}
+     * — otherwise a 10:55 sale would wrongly count as "before" a 10:00 alert. Rows with a null or
+     * unparseable {@code sale_time} fall back to the top of their hour (mirrors
+     * {@code AlertService#resolveSoldAt}), so they're always included once their hour qualifies.
+     * Ordering mirrors the raw-JDBC read in {@code SalesProcessor}: {@code sale_date DESC, hour DESC},
+     * with {@code id DESC} as a stable tie-breaker within the same hour/time.
      *
      * @param storeCode  store code stored in {@code coffee_shop_name}
      * @param beforeDate the alert's calendar day — rows after this day are excluded
      * @param beforeHour the alert's hour-of-day — on {@code beforeDate}, rows in a later hour are excluded
+     * @param beforeTime the alert's exact time-of-day — within {@code beforeHour} on {@code beforeDate},
+     *                   rows with a parseable {@code sale_time} later than this are excluded
      * @param limit      max rows to return
      */
     @Query(value = """
             SELECT c.* FROM coffee_sales_hourly c
             WHERE c.coffee_shop_name = :storeCode
-              AND (c.sale_date < :beforeDate
-                   OR (c.sale_date = :beforeDate AND c.hour <= :beforeHour))
-            ORDER BY c.sale_date DESC, c.hour DESC, c.id DESC
+              AND (
+                c.sale_date < :beforeDate
+                OR (c.sale_date = :beforeDate AND c.hour < :beforeHour)
+                OR (
+                  c.sale_date = :beforeDate AND c.hour = :beforeHour
+                  AND (
+                    TRIM(c.sale_time) IS NULL
+                    OR TRIM(c.sale_time) !~ '^[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?$'
+                    OR TRIM(c.sale_time)::time <= :beforeTime
+                  )
+                )
+              )
+            ORDER BY c.sale_date DESC, c.hour DESC,
+                     CASE WHEN TRIM(c.sale_time) ~ '^[0-9]{1,2}:[0-9]{2}(:[0-9]{2})?$'
+                          THEN TRIM(c.sale_time)::time
+                          ELSE '00:00:00'::time END DESC,
+                     c.id DESC
             LIMIT :limit
             """, nativeQuery = true)
     List<CoffeeSalesHourly> findRecentOrdersForStore(
             @Param("storeCode") String storeCode,
             @Param("beforeDate") LocalDate beforeDate,
             @Param("beforeHour") int beforeHour,
+            @Param("beforeTime") LocalTime beforeTime,
             @Param("limit") int limit);
 
     /**

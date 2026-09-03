@@ -254,7 +254,7 @@ public class AlertService {
     /**
      * Get alert details by alert ID.
      * <p>The {@code sales} list is the last {@value #ALERT_DETAIL_RECENT_ORDERS} orders at or before
-     * the alert's hour, read straight from {@code coffee_sales_hourly} (matched on
+     * the alert's exact time, read straight from {@code coffee_sales_hourly} (matched on
      * {@code coffee_shop_name} = store code, resolved through the demo KPI source for demo stores)
      * — the {@code sales} entity table is not consulted.</p>
      * <p>If the current store is a demo store and {@code requestedDate} is provided (or defaults
@@ -310,7 +310,7 @@ public class AlertService {
     }
 
     /**
-     * Last {@value #ALERT_DETAIL_RECENT_ORDERS} orders at or before the alert's hour, read from
+     * Last {@value #ALERT_DETAIL_RECENT_ORDERS} orders at or before the alert's exact time, read from
      * {@code coffee_sales_hourly} (matched on {@code coffee_shop_name} = store code) and mapped to
      * {@link SalesDTO}. Returns an empty list when the store code or the alert date can't be resolved.
      */
@@ -325,7 +325,7 @@ public class AlertService {
         }
         return coffeeSalesHourlyRepository
                 .findRecentOrdersForStore(storeCode, alertDate.toLocalDate(),
-                        alertDate.getHour(), ALERT_DETAIL_RECENT_ORDERS)
+                        alertDate.getHour(), alertDate.toLocalTime(), ALERT_DETAIL_RECENT_ORDERS)
                 .stream()
                 .map(AlertService::toSalesDTO)
                 .collect(Collectors.toList());
