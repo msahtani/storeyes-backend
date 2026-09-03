@@ -253,8 +253,8 @@ public class AlertService {
 
     /**
      * Get alert details by alert ID.
-     * <p>The {@code sales} list is the last {@value #ALERT_DETAIL_RECENT_ORDERS} orders at or before
-     * the alert's exact time, read straight from {@code coffee_sales_hourly} (matched on
+     * <p>The {@code sales} list is the last {@value #ALERT_DETAIL_RECENT_ORDERS} orders strictly
+     * before the alert's exact time, read straight from {@code coffee_sales_hourly} (matched on
      * {@code coffee_shop_name} = store code, resolved through the demo KPI source for demo stores)
      * — the {@code sales} entity table is not consulted.</p>
      * <p>If the current store is a demo store and {@code requestedDate} is provided (or defaults
@@ -310,9 +310,9 @@ public class AlertService {
     }
 
     /**
-     * Last {@value #ALERT_DETAIL_RECENT_ORDERS} orders at or before the alert's exact time, read from
-     * {@code coffee_sales_hourly} (matched on {@code coffee_shop_name} = store code) and mapped to
-     * {@link SalesDTO}. Returns an empty list when the store code or the alert date can't be resolved.
+     * Last {@value #ALERT_DETAIL_RECENT_ORDERS} orders strictly before the alert's exact time, read
+     * from {@code coffee_sales_hourly} (matched on {@code coffee_shop_name} = store code) and mapped
+     * to {@link SalesDTO}. Returns an empty list when the store code or the alert date can't be resolved.
      */
     private List<SalesDTO> fetchRecentOrders(Alert alert) {
         LocalDateTime alertDate = alert.getAlertDate();
@@ -324,8 +324,7 @@ public class AlertService {
             return List.of();
         }
         return coffeeSalesHourlyRepository
-                .findRecentOrdersForStore(storeCode, alertDate.toLocalDate(),
-                        alertDate.getHour(), alertDate.toLocalTime(), ALERT_DETAIL_RECENT_ORDERS)
+                .findRecentOrdersForStore(storeCode, alertDate, ALERT_DETAIL_RECENT_ORDERS)
                 .stream()
                 .map(AlertService::toSalesDTO)
                 .collect(Collectors.toList());
