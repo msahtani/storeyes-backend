@@ -130,6 +130,9 @@ public class SecurityConfig {
                 // work modes are also read by users, so any authenticated principal will do.
                 .requestMatchers("/api/staff/employee-logs/punch").hasRole("DEVICE")
                 .requestMatchers("/api/staff/work-modes").authenticated()
+                // Hikvision terminals post attendance events here directly with no JWT and no
+                // X-DEVICE-ID, so the proxy forwards them to the staff service unauthenticated.
+                .requestMatchers(HttpMethod.POST, "/api/staff/device-events").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/notifications/daily-kpi").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/notifications/daily-alerts").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/firebase-tokens-v2/test/*").permitAll()
