@@ -1,0 +1,2 @@
+ALTER TABLE feedbacks
+    ADD COLUMN IF NOT EXISTS contact VARCHAR(255);

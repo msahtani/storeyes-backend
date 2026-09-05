@@ -16,6 +16,8 @@ public class FeedbackItemDTO {
     /** "GOOD" or "BAD" */
     private String rating;
     private String comment;
+    /** Optional phone/email the customer left so the store can follow up (bad feedback only) */
+    private String contact;
     /** ISO-8601 string, e.g. "2026-05-24T14:32:00" */
     private String submittedAt;
     private Boolean isVisiting;

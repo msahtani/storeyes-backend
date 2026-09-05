@@ -39,6 +39,10 @@ public class Feedback {
     @Column(name = "comment", length = 2048)
     private String comment;
 
+    /** Optional phone/email left by the customer so the store can follow up (bad feedback only) */
+    @Column(name = "contact", length = 255)
+    private String contact;
+
     /** True if the customer is a visiting/tourist customer, false if regular */
     @Column(name = "is_visiting", nullable = false)
     private boolean isVisiting;

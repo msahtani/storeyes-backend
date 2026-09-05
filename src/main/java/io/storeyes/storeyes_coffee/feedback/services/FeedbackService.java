@@ -120,6 +120,7 @@ public class FeedbackService {
                             .id(f.getId())
                             .rating(f.getRating().name())
                             .comment(f.getComment())
+                            .contact(f.getContact())
                             .submittedAt(f.getSubmittedAt().format(ISO))
                             .isVisiting(f.isVisiting())
                             .isMobile(f.isMobile())
@@ -205,6 +206,9 @@ public class FeedbackService {
 
         if (request.getComment() != null) {
             feedback.setComment(request.getComment());
+        }
+        if (request.getContact() != null) {
+            feedback.setContact(request.getContact());
         }
         if (request.getIsVisiting() != null) {
             feedback.setVisiting(request.getIsVisiting());

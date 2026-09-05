@@ -8,6 +8,7 @@ import java.util.List;
 public class FeedbackPatchRequest {
 
     private String comment;
+    private String contact;
     private Boolean isVisiting;
     private List<FeedbackAnswerRequest> answers;
 }
