@@ -40,7 +40,10 @@ public class StaffProxyController {
     private static final String EMPLOYEE_LOGS_PATH = "/api/staff/employee-logs";
     private static final Set<String> HOP_BY_HOP = Set.of(
             "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
-            "te", "trailers", "transfer-encoding", "upgrade", "host"
+            "te", "trailers", "transfer-encoding", "upgrade", "host",
+            // Drop the inbound length; RestTemplate recomputes it for the body we actually send,
+            // so a re-chunked or re-read body can't be truncated against a stale Content-Length.
+            "content-length"
     );
 
     private final RestTemplate restTemplate;

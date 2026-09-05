@@ -3,6 +3,9 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 50MB
+      # Defer part parsing so StaffProxyController can read the raw body of a
+      # forwarded multipart request via request.getInputStream().
+      resolve-lazily: true
       
   application:
     name: storeyes-coffee
