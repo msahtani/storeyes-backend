@@ -29,8 +29,6 @@ public class MultiStoreAuthResponse {
         private String storeName;
         private String storeCode;
         private String role;
-        private boolean feedbackOnlyMode;
-        private boolean staffOnlyMode;
         private List<FeatureAccessDTO> features;
         /** The store's Pack home screen / nav bar layout. Null if no pack assigned or no layout configured. */
         private Map<String, Object> mobileLayout;

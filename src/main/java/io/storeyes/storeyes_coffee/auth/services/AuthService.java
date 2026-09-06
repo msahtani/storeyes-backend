@@ -225,8 +225,6 @@ public class AuthService {
                         .storeName(rm.getStore().getName())
                         .storeCode(rm.getStore().getCode())
                         .role(rm.getRole().getName())
-                        .feedbackOnlyMode(rm.getStore().isFeedbackOnlyMode())
-                        .staffOnlyMode(rm.getStore().isStaffOnlyMode())
                         .features(resolveFeatures(rm.getStore().getId(), rm.getRole().getName()))
                         .mobileLayout(clientGwLookupService.fetchPackLayout(rm.getStore().getId()).getMobileLayout())
                         .build())
