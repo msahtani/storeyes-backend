@@ -38,6 +38,8 @@ public class StaffProxyController {
     private static final String TARGET_BASE = "http://10.0.48.56:8080";
     private static final String STORE_CODE_HEADER = "X-STORE-CODE";
     private static final String EMPLOYEE_LOGS_PATH = "/api/staff/employee-logs";
+    /** Hikvision access-control terminals push events here with no credential and no X-STORE-CODE. */
+    private static final String DEVICE_EVENTS_PATH = "/api/staff/device-events";
     private static final Set<String> HOP_BY_HOP = Set.of(
             "connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
             "te", "trailers", "transfer-encoding", "upgrade", "host",
@@ -53,6 +55,7 @@ public class StaffProxyController {
     private final Optional<FcmNotificationService> fcmNotificationService;
     private final ObjectMapper objectMapper;
     private final DemoStoreDataSourceResolver demoStoreDataSourceResolver;
+    private final DeviceEventStoreResolver deviceEventStoreResolver;
 
     /** Roles notified of attendance, matched case-insensitively against {@code roles.name}. */
     @Value("${app.attendance-notifications.roles:OWNER,MANAGER}")
@@ -78,11 +81,21 @@ public class StaffProxyController {
         if (storeCode != null && HttpMethod.GET.matches(request.getMethod())) {
             storeCode = resolveStaffDataStoreCode(storeCode);
         }
+
+        byte[] body = request.getInputStream().readAllBytes();
+
+        // A Hikvision access-control push has no credential and no X-STORE-CODE — attribute it to the
+        // store its terminal MAC is registered to, auto-registering unknown terminals as unassigned
+        // devices. Only kicks in when nothing else resolved a store.
+        if (storeCode == null
+                && HttpMethod.POST.matches(request.getMethod())
+                && request.getRequestURI().startsWith(DEVICE_EVENTS_PATH)) {
+            storeCode = deviceEventStoreResolver.resolveStoreCode(body).orElse(null);
+        }
+
         if (storeCode != null) {
             headers.set(STORE_CODE_HEADER, storeCode);
         }
-
-        byte[] body = request.getInputStream().readAllBytes();
         HttpEntity<byte[]> entity = body.length > 0
                 ? new HttpEntity<>(body, headers)
                 : new HttpEntity<>(headers);

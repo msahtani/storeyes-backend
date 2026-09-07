@@ -23,14 +23,16 @@ public class Device {
     @SequenceGenerator(name = "device_id_seq", sequenceName = "device_id_seq", allocationSize = 1)
     private Long id;
 
+    // Nullable: st-admin-back allows store-less ("unassigned") devices, and this table is shared.
     @ManyToOne
-    @JoinColumn(name = "store_id", nullable = false)
+    @JoinColumn(name = "store_id")
     private Store store;
 
     @Column(name = "board_id", unique = true, nullable = false)
     private String boardId;
 
-    @Column(name = "machine_id", nullable = false)
+    // Nullable: ACCESS_CONTROL devices (identified by MAC) carry no machine id.
+    @Column(name = "machine_id")
     private String machineId;
 
     @Column(name = "device_type", nullable = false)
